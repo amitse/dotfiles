@@ -11,8 +11,45 @@ Personal dotfiles managed with [chezmoi](https://chezmoi.io).
 
 ## Quick Start
 
-### Windows (PowerShell)
+### 🚀 One-line install (Cross-platform)
 
+**Automatic OS detection** - works on Windows (Git Bash/WSL), Linux, and macOS:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/amitse/dotfiles/main/bootstrap.sh | bash
+```
+
+**Options:**
+```bash
+# Dry run (preview only)
+curl -fsSL https://raw.githubusercontent.com/amitse/dotfiles/main/bootstrap.sh | bash -s -- --dry-run
+
+# Force reinstall
+curl -fsSL https://raw.githubusercontent.com/amitse/dotfiles/main/bootstrap.sh | bash -s -- --force
+
+# Custom repo
+curl -fsSL https://raw.githubusercontent.com/amitse/dotfiles/main/bootstrap.sh | bash -s -- --repo https://github.com/yourusername/dotfiles.git
+```
+
+### 🐧 Linux only (simple)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/amitse/dotfiles/main/install-linux.sh | bash
+```
+
+### 🪟 Windows (PowerShell)
+
+**Automated (recommended):**
+```powershell
+# Download and run bootstrap script
+irm https://raw.githubusercontent.com/amitse/dotfiles/main/bootstrap.ps1 | iex
+
+# Or with parameters
+.\bootstrap.ps1 -DryRun
+.\bootstrap.ps1 -Force
+```
+
+**Manual installation:**
 ```powershell
 # Install chezmoi (choose one method)
 winget install twpayne.chezmoi
@@ -31,7 +68,23 @@ chezmoi diff
 chezmoi apply
 ```
 
-### macOS/Linux
+### 🍎 macOS (Manual)
+
+```bash
+# Install chezmoi
+brew install chezmoi
+
+# Initialize with your dotfiles repo
+chezmoi init https://github.com/amitse/dotfiles.git
+
+# Review what would be applied
+chezmoi diff
+
+# Apply the dotfiles
+chezmoi apply
+```
+
+### 🐧 Linux (Manual)
 
 ```bash
 # Install chezmoi
@@ -206,9 +259,15 @@ sudo pacman -S xsel              # Arch Linux
 
 The tmux config will automatically detect and use the best available clipboard tool.
 
-## Bootstrap script
+## Bootstrap Scripts
 
-For fresh installs, see `bootstrap.ps1` for an automated setup script.
+Multiple automated installation options:
+
+- **`bootstrap.sh`** - Cross-platform script (Windows/Linux/macOS)
+- **`bootstrap.ps1`** - Windows PowerShell script
+- **`install-linux.sh`** - Simple Linux-only script
+
+All scripts support dry-run mode and automatic dependency installation.
 
 ## Resources
 
