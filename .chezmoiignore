@@ -1,0 +1,40 @@
+# Files to ignore when applying chezmoi templates
+# This prevents chezmoi from managing certain files
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor temporary files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Git directory (chezmoi shouldn't manage the .git folder)
+.git/
+
+# Secrets and local configs (manage these separately)
+.env
+.env.local
+.ssh/id_*
+.ssh/known_hosts
+.gnupg/
+.aws/credentials
+
+# OS package manager caches
+.cache/
+.npm/
+.cargo/
+.rustup/
+
+# Application state that shouldn't be synced
+.bash_history
+.zsh_history
+.python_history
+.node_repl_history
+
+# Logs
+*.log

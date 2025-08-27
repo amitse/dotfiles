@@ -1,0 +1,34 @@
+# Normalize line endings for cross-platform consistency
+* text=auto eol=lf
+
+# Force LF for shell scripts and configs
+*.sh text eol=lf
+*.bash text eol=lf
+*.zsh text eol=lf
+*.tmux text eol=lf
+*.conf text eol=lf
+
+# Force CRLF for Windows-specific files
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.mov binary
+*.mp4 binary
+*.mp3 binary
+*.flv binary
+*.fla binary
+*.swf binary
+*.gz binary
+*.zip binary
+*.7z binary
+*.ttf binary
+*.eot binary
+*.woff binary
+*.woff2 binary

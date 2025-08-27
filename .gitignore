@@ -1,0 +1,29 @@
+# Common ignore patterns for dotfiles repo
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Windows-specific
+desktop.ini
+ehthumbs.db
+
+# Temporary files
+*.tmp
+*.log
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS generated files
+*.orig
+
+# Don't commit secrets or local-only configs
+.env
+.env.local
+secrets/
+private/
