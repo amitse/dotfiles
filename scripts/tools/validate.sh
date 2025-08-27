@@ -261,13 +261,13 @@ test_repository_structure() {
 test_install_script() {
     echo -e "${BLUE}🚀 Testing install script (dry run)...${NC}"
     
-    # Test if the script accepts the non-interactive flag
-    if bash -n "$REPO_ROOT/install.sh"; then
+    # Test if the script accepts the non-interactive flag (moved under scripts/install)
+    if bash -n "$REPO_ROOT/scripts/install/install-unix.sh"; then
         echo -e "${GREEN}✅ Install script syntax valid${NC}"
-        
+
         # Check if it handles the non-interactive flag correctly
         local output
-        if output=$(bash "$REPO_ROOT/install.sh" --non-interactive 2>&1 | head -10); then
+        if output=$(bash "$REPO_ROOT/scripts/install/install-unix.sh" --non-interactive 2>&1 | head -10); then
             echo -e "${GREEN}✅ Install script handles non-interactive mode${NC}"
         else
             echo -e "${YELLOW}⚠️  Install script non-interactive mode may need chezmoi${NC}"
