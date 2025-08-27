@@ -28,7 +28,7 @@ test_required_files() {
         "scripts/install/install-windows.ps1"
         "README.md"
         "PLAN.md"
-        ".chezmoi/chezmoi.toml.tmpl"
+        "chezmoi/templates/chezmoi.toml.tmpl"
         "templates/root/dot_zshrc.tmpl"
         "templates/partials/shell/core.sh.tmpl"
         "templates/partials/shell/exports.sh.tmpl"
@@ -234,7 +234,7 @@ test_repository_structure() {
         "templates/partials"
         "docs"
         "scripts"
-        ".chezmoi"
+        "chezmoi"
         ".github/workflows"
     )
     
