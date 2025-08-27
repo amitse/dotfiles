@@ -24,10 +24,9 @@ test_required_files() {
     echo -e "${BLUE}📁 Testing required files...${NC}"
     
     local required_files=(
-        "scripts/install/install-unix.sh"
-        "scripts/install/install-windows.ps1"
+        "scripts/install/unix/install-unix.sh"
+        "scripts/install/windows/install-windows.ps1"
         "README.md"
-        "PLAN.md"
         "chezmoi/templates/chezmoi.toml.tmpl"
         "templates/root/dot_zshrc.tmpl"
         "templates/partials/shell/core.sh.tmpl"
@@ -62,7 +61,7 @@ test_shell_scripts() {
     local errors=0
     
     # Test install script (now under scripts/install)
-    if bash -n "$REPO_ROOT/scripts/install/install-unix.sh"; then
+    if bash -n "$REPO_ROOT/scripts/install/unix/install-unix.sh"; then
         echo -e "${GREEN}✅ install-unix.sh syntax valid${NC}"
     else
         echo -e "${RED}❌ install-unix.sh syntax error${NC}"
@@ -280,12 +279,12 @@ test_install_script() {
     echo -e "${BLUE}🚀 Testing install script (dry run)...${NC}"
     
     # Test if the script accepts the non-interactive flag (moved under scripts/install)
-    if bash -n "$REPO_ROOT/scripts/install/install-unix.sh"; then
+    if bash -n "$REPO_ROOT/scripts/install/unix/install-unix.sh"; then
         echo -e "${GREEN}✅ Install script syntax valid${NC}"
 
         # Check if it handles the non-interactive flag correctly
         local output
-        if output=$(bash "$REPO_ROOT/scripts/install/install-unix.sh" --non-interactive 2>&1 | head -10); then
+        if output=$(bash "$REPO_ROOT/scripts/install/unix/install-unix.sh" --non-interactive 2>&1 | head -10); then
             echo -e "${GREEN}✅ Install script handles non-interactive mode${NC}"
         else
             echo -e "${YELLOW}⚠️  Install script non-interactive mode may need chezmoi${NC}"
