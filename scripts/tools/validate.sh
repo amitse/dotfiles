@@ -205,7 +205,6 @@ test_documentation() {
         "docs/GETTING-STARTED.md"
         "docs/PROFILES.md"
         "docs/AI-ASSISTANT-GUIDE.md"
-        "PLAN.md"
     )
     
     for doc in "${expected_docs[@]}"; do
