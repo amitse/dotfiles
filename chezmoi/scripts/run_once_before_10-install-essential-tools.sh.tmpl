@@ -92,11 +92,42 @@ install_tools() {
     done
 }
 
+# Get the correct package name for the tool
+get_package_name() {
+    local tool="$1"
+    local pm="$2"
+    
+    case "$tool" in
+        "fd")
+            case "$pm" in
+                "apt") echo "fd-find" ;;
+                *) echo "$tool" ;;
+            esac
+            ;;
+        "ripgrep")
+            case "$pm" in
+                "apt") echo "ripgrep" ;;
+                *) echo "$tool" ;;
+            esac
+            ;;
+        "bat")
+            case "$pm" in
+                "apt") echo "bat" ;;
+                *) echo "$tool" ;;
+            esac
+            ;;
+        *)
+            echo "$tool"
+            ;;
+    esac
+}
+
 # Install individual tool
 install_tool() {
     local pm="$1"
     local tool="$2"
     local type="$3"
+    local package_name
     
     # Check if tool is already available
     if command -v "$tool" >/dev/null 2>&1; then
@@ -106,37 +137,40 @@ install_tool() {
     
     log_info "Installing $tool..."
     
+    # Get the correct package name
+    package_name=$(get_package_name "$tool" "$pm")
+    
     case "$pm" in
         "apt")
-            if sudo apt update >/dev/null 2>&1 && sudo apt install -y "$tool" >/dev/null 2>&1; then
+            if sudo apt update >/dev/null 2>&1 && sudo apt install -y "$package_name" >/dev/null 2>&1; then
                 log_success "$tool installed via apt"
             else
                 handle_install_failure "$tool" "$type"
             fi
             ;;
         "yum")
-            if sudo yum install -y "$tool" >/dev/null 2>&1; then
+            if sudo yum install -y "$package_name" >/dev/null 2>&1; then
                 log_success "$tool installed via yum"
             else
                 handle_install_failure "$tool" "$type"
             fi
             ;;
         "dnf")
-            if sudo dnf install -y "$tool" >/dev/null 2>&1; then
+            if sudo dnf install -y "$package_name" >/dev/null 2>&1; then
                 log_success "$tool installed via dnf"
             else
                 handle_install_failure "$tool" "$type"
             fi
             ;;
         "pacman")
-            if sudo pacman -S --noconfirm "$tool" >/dev/null 2>&1; then
+            if sudo pacman -S --noconfirm "$package_name" >/dev/null 2>&1; then
                 log_success "$tool installed via pacman"
             else
                 handle_install_failure "$tool" "$type"
             fi
             ;;
         "brew")
-            if brew install "$tool" >/dev/null 2>&1; then
+            if brew install "$package_name" >/dev/null 2>&1; then
                 log_success "$tool installed via brew"
             else
                 handle_install_failure "$tool" "$type"
