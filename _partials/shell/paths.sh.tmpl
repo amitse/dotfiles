@@ -1,0 +1,415 @@
+# Shell Paths Configuration
+# PATH management for all shells
+
+# Save original PATH
+ORIGINAL_PATH="$PATH"
+
+# Initialize PATH array for clean management
+path_parts=()
+
+# Function to add to PATH if directory exists and not already present
+add_to_path() {
+    local dir="$1"
+    local position="${2:-end}"  # 'end' or 'start'
+    
+    if [ -d "$dir" ] && [[ ":$PATH:" != *":$dir:"* ]]; then
+        if [ "$position" = "start" ]; then
+            path_parts=("$dir" "${path_parts[@]}")
+        else
+            path_parts+=("$dir")
+        fi
+    fi
+}
+
+# Function to remove from PATH
+remove_from_path() {
+    local dir="$1"
+    PATH=$(echo "$PATH" | sed -e "s|:$dir||g" -e "s|$dir:||g" -e "s|$dir||g")
+}
+
+# Function to rebuild PATH from parts
+rebuild_path() {
+    local IFS=':'
+    PATH="${path_parts[*]}"
+    export PATH
+}
+
+# System default paths (add these first)
+{{- if eq .chezmoi.os "linux" }}
+add_to_path "/usr/local/sbin"
+add_to_path "/usr/local/bin"
+add_to_path "/usr/sbin"
+add_to_path "/usr/bin"
+add_to_path "/sbin"
+add_to_path "/bin"
+{{- else if eq .chezmoi.os "darwin" }}
+add_to_path "/usr/local/sbin"
+add_to_path "/usr/local/bin"
+add_to_path "/usr/sbin"
+add_to_path "/usr/bin"
+add_to_path "/sbin"
+add_to_path "/bin"
+add_to_path "/opt/local/bin"
+add_to_path "/opt/local/sbin"
+{{- else if eq .chezmoi.os "windows" }}
+# Windows PATH management would be different in PowerShell
+{{- end }}
+
+# User binary directories
+add_to_path "$HOME/.local/bin"
+add_to_path "$HOME/bin"
+
+# Development language paths
+{{- if lookPath "go" }}
+# Go paths
+{{- if .tools.go.path }}
+add_to_path "{{ .tools.go.path }}/bin"
+{{- else }}
+add_to_path "$HOME/go/bin"
+{{- end }}
+{{- end }}
+
+{{- if lookPath "cargo" }}
+# Rust/Cargo paths
+add_to_path "$HOME/.cargo/bin"
+{{- end }}
+
+{{- if lookPath "node" }}
+# Node.js paths
+{{- if eq .chezmoi.os "darwin" }}
+# Global npm packages on macOS
+add_to_path "/usr/local/lib/node_modules/.bin"
+{{- if lookPath "brew" }}
+# Homebrew node
+add_to_path "$(brew --prefix)/lib/node_modules/.bin" 2>/dev/null
+{{- end }}
+{{- else if eq .chezmoi.os "linux" }}
+# Global npm packages on Linux
+add_to_path "$HOME/.npm-global/bin"
+add_to_path "/usr/local/lib/node_modules/.bin"
+{{- end }}
+
+# Yarn global
+{{- if lookPath "yarn" }}
+add_to_path "$(yarn global bin 2>/dev/null)" 2>/dev/null
+{{- end }}
+
+# pnpm global
+{{- if lookPath "pnpm" }}
+add_to_path "$HOME/.local/share/pnpm"
+{{- end }}
+
+# Deno
+{{- if lookPath "deno" }}
+add_to_path "$HOME/.deno/bin"
+{{- end }}
+{{- end }}
+
+{{- if lookPath "python" }}
+# Python paths
+{{- if eq .chezmoi.os "darwin" }}
+# Python user base on macOS
+if command -v python3 >/dev/null 2>&1; then
+    add_to_path "$(python3 -m site --user-base)/bin" 2>/dev/null
+fi
+{{- else if eq .chezmoi.os "linux" }}
+# Python user base on Linux
+if command -v python3 >/dev/null 2>&1; then
+    add_to_path "$(python3 -m site --user-base)/bin" 2>/dev/null
+fi
+{{- end }}
+
+# Pipx
+{{- if lookPath "pipx" }}
+add_to_path "$HOME/.local/bin"
+{{- end }}
+
+# Poetry
+{{- if lookPath "poetry" }}
+add_to_path "$HOME/.poetry/bin"
+{{- end }}
+{{- end }}
+
+{{- if lookPath "ruby" }}
+# Ruby paths
+{{- if lookPath "gem" }}
+if command -v gem >/dev/null 2>&1; then
+    add_to_path "$(gem environment gemdir)/bin" 2>/dev/null
+fi
+{{- end }}
+
+# rbenv
+{{- if lookPath "rbenv" }}
+add_to_path "$HOME/.rbenv/bin"
+{{- end }}
+{{- end }}
+
+{{- if lookPath "php" }}
+# PHP paths
+{{- if lookPath "composer" }}
+add_to_path "$HOME/.composer/vendor/bin"
+add_to_path "$HOME/.config/composer/vendor/bin"
+{{- end }}
+{{- end }}
+
+{{- if lookPath "java" }}
+# Java paths
+{{- if .tools.java.home }}
+add_to_path "{{ .tools.java.home }}/bin"
+{{- else if eq .chezmoi.os "darwin" }}
+# macOS Java detection
+if command -v /usr/libexec/java_home >/dev/null 2>&1; then
+    add_to_path "$(/usr/libexec/java_home)/bin" 2>/dev/null
+fi
+{{- end }}
+
+# Maven
+{{- if .tools.maven.home }}
+add_to_path "{{ .tools.maven.home }}/bin"
+{{- else }}
+add_to_path "/opt/maven/bin"
+{{- end }}
+
+# Gradle
+{{- if .tools.gradle.home }}
+add_to_path "{{ .tools.gradle.home }}/bin"
+{{- else }}
+add_to_path "/opt/gradle/bin"
+{{- end }}
+{{- end }}
+
+# Platform-specific package managers
+{{- if eq .chezmoi.os "darwin" }}
+# Homebrew paths
+{{- if lookPath "brew" }}
+# Detect Homebrew installation
+if [[ -d "/opt/homebrew" ]]; then
+    # Apple Silicon Mac
+    add_to_path "/opt/homebrew/bin" start
+    add_to_path "/opt/homebrew/sbin" start
+elif [[ -d "/usr/local/Homebrew" ]]; then
+    # Intel Mac
+    add_to_path "/usr/local/bin" start
+    add_to_path "/usr/local/sbin" start
+fi
+{{- end }}
+
+# MacPorts
+{{- if lookPath "port" }}
+add_to_path "/opt/local/bin"
+add_to_path "/opt/local/sbin"
+{{- end }}
+{{- end }}
+
+{{- if eq .chezmoi.os "linux" }}
+# Snap paths
+{{- if lookPath "snap" }}
+add_to_path "/snap/bin"
+{{- end }}
+
+# Flatpak paths
+{{- if lookPath "flatpak" }}
+add_to_path "/var/lib/flatpak/exports/bin"
+add_to_path "$HOME/.local/share/flatpak/exports/bin"
+{{- end }}
+
+# AppImage paths
+add_to_path "$HOME/.local/bin"
+add_to_path "$HOME/Applications"
+
+# Linuxbrew
+{{- if lookPath "brew" }}
+add_to_path "/home/linuxbrew/.linuxbrew/bin"
+add_to_path "/home/linuxbrew/.linuxbrew/sbin"
+{{- end }}
+{{- end }}
+
+# Container and orchestration tools
+{{- if lookPath "docker" }}
+# Docker paths are usually in system PATH
+{{- end }}
+
+{{- if lookPath "kubectl" }}
+# Kubernetes tools
+add_to_path "$HOME/.krew/bin"
+{{- end }}
+
+# Cloud provider tools
+{{- if lookPath "aws" }}
+# AWS CLI
+add_to_path "$HOME/.local/bin"
+{{- end }}
+
+{{- if lookPath "gcloud" }}
+# Google Cloud SDK
+{{- if eq .chezmoi.os "darwin" }}
+add_to_path "$HOME/google-cloud-sdk/bin"
+{{- else if eq .chezmoi.os "linux" }}
+add_to_path "$HOME/google-cloud-sdk/bin"
+{{- end }}
+{{- end }}
+
+{{- if lookPath "az" }}
+# Azure CLI paths are usually in system PATH
+{{- end }}
+
+# Development tools
+{{- if lookPath "flutter" }}
+# Flutter
+{{- if .tools.flutter.path }}
+add_to_path "{{ .tools.flutter.path }}/bin"
+{{- else }}
+add_to_path "$HOME/flutter/bin"
+{{- end }}
+{{- end }}
+
+{{- if lookPath "dart" }}
+# Dart
+add_to_path "$HOME/.pub-cache/bin"
+{{- end }}
+
+{{- if lookPath "code" }}
+# VS Code CLI (usually handled by installer)
+{{- end }}
+
+# Custom application paths
+{{- if .paths.custom_bin }}
+add_to_path "{{ .paths.custom_bin }}"
+{{- end }}
+
+# Additional custom paths from config
+{{- range .paths.additional }}
+add_to_path "{{ . }}"
+{{- end }}
+
+# Profile-specific paths
+{{- if eq .profile "developer" }}
+# Developer profile specific paths
+add_to_path "$HOME/.local/share/nvim/bin"
+add_to_path "$HOME/development/tools/bin"
+{{- else if eq .profile "power-user" }}
+# Power user profile specific paths
+add_to_path "$HOME/.local/share/chezmoi/bin"
+add_to_path "$HOME/scripts"
+add_to_path "$HOME/tools/bin"
+{{- end }}
+
+# Rebuild PATH from our managed parts
+rebuild_path
+
+# Path management functions
+show_path() {
+    echo "🛤️  Current PATH:"
+    echo "$PATH" | tr ':' '\n' | nl
+}
+
+path_info() {
+    echo "🛤️  PATH Information"
+    echo "=================="
+    echo ""
+    echo "📊 Path Statistics:"
+    local count=$(echo "$PATH" | tr ':' '\n' | wc -l)
+    echo "  Total directories: $count"
+    echo ""
+    echo "📁 PATH Contents:"
+    echo "$PATH" | tr ':' '\n' | while IFS= read -r dir; do
+        if [ -d "$dir" ]; then
+            local bin_count=$(find "$dir" -maxdepth 1 -type f -executable 2>/dev/null | wc -l)
+            echo "  ✅ $dir ($bin_count executables)"
+        else
+            echo "  ❌ $dir (missing)"
+        fi
+    done
+}
+
+clean_path() {
+    echo "🧹 Cleaning PATH..."
+    local new_path=""
+    local seen_dirs=""
+    
+    # Remove duplicates and missing directories
+    echo "$PATH" | tr ':' '\n' | while IFS= read -r dir; do
+        if [ -d "$dir" ] && [[ ":$seen_dirs:" != *":$dir:"* ]]; then
+            if [ -z "$new_path" ]; then
+                new_path="$dir"
+            else
+                new_path="$new_path:$dir"
+            fi
+            seen_dirs="$seen_dirs:$dir"
+        fi
+    done
+    
+    export PATH="$new_path"
+    echo "✅ PATH cleaned"
+    echo "Removed duplicates and missing directories"
+}
+
+reset_path() {
+    echo "🔄 Resetting PATH to original..."
+    export PATH="$ORIGINAL_PATH"
+    echo "✅ PATH reset to: $PATH"
+}
+
+# Function to add a directory to PATH interactively
+add_path() {
+    local dir="$1"
+    local position="${2:-end}"
+    
+    if [ -z "$dir" ]; then
+        echo "Usage: add_path <directory> [start|end]"
+        return 1
+    fi
+    
+    if [ ! -d "$dir" ]; then
+        echo "❌ Directory does not exist: $dir"
+        return 1
+    fi
+    
+    if [[ ":$PATH:" == *":$dir:"* ]]; then
+        echo "ℹ️  Directory already in PATH: $dir"
+        return 0
+    fi
+    
+    if [ "$position" = "start" ]; then
+        export PATH="$dir:$PATH"
+        echo "✅ Added to beginning of PATH: $dir"
+    else
+        export PATH="$PATH:$dir"
+        echo "✅ Added to end of PATH: $dir"
+    fi
+}
+
+# Function to check if a command is in PATH
+in_path() {
+    local cmd="$1"
+    if [ -z "$cmd" ]; then
+        echo "Usage: in_path <command>"
+        return 1
+    fi
+    
+    if command -v "$cmd" >/dev/null 2>&1; then
+        local location=$(command -v "$cmd")
+        echo "✅ '$cmd' found at: $location"
+        return 0
+    else
+        echo "❌ '$cmd' not found in PATH"
+        return 1
+    fi
+}
+
+# Path help function
+path_help() {
+    echo "🛤️  PATH Management Functions:"
+    echo ""
+    echo "📊 Information:"
+    echo "  • show_path          - Display current PATH"
+    echo "  • path_info          - Detailed PATH analysis"
+    echo "  • in_path <cmd>      - Check if command is in PATH"
+    echo ""
+    echo "🔧 Management:"
+    echo "  • add_path <dir>     - Add directory to PATH"
+    echo "  • clean_path         - Remove duplicates and missing dirs"
+    echo "  • reset_path         - Reset to original PATH"
+    echo ""
+    echo "💡 Current PATH has $(echo "$PATH" | tr ':' '\n' | wc -l) directories"
+}

@@ -1,0 +1,476 @@
+# Shell Functions Configuration
+# Common utility functions for all shells
+
+# Navigation and directory functions
+mcd() {
+    mkdir -p "$1" && cd "$1"
+}
+
+up() {
+    local levels=${1:-1}
+    local path=""
+    for ((i=0; i<levels; i++)); do
+        path="../$path"
+    done
+    cd "$path"
+}
+
+# Change to workspace directory
+workspace() {
+    if [ -n "$WORKSPACE" ] && [ -d "$WORKSPACE" ]; then
+        cd "$WORKSPACE"
+    else
+        echo "WORKSPACE not set or directory doesn't exist"
+        return 1
+    fi
+}
+
+# Change to projects directory
+projects() {
+    if [ -n "$PROJECTS" ] && [ -d "$PROJECTS" ]; then
+        cd "$PROJECTS"
+    else
+        echo "PROJECTS not set or directory doesn't exist"
+        return 1
+    fi
+}
+
+# File and directory utilities
+backup() {
+    local file="$1"
+    if [ -f "$file" ]; then
+        cp "$file" "$file.backup.$(date +%Y%m%d_%H%M%S)"
+        echo "✅ Backed up: $file"
+    else
+        echo "❌ File not found: $file"
+        return 1
+    fi
+}
+
+# Create and extract archives
+archive() {
+    local file="$1"
+    local format="${2:-tar.gz}"
+    
+    if [ -z "$file" ]; then
+        echo "Usage: archive <directory> [format]"
+        echo "Formats: tar.gz (default), tar.bz2, zip"
+        return 1
+    fi
+    
+    case "$format" in
+        "tar.gz")
+            tar -czf "${file}.tar.gz" "$file"
+            echo "✅ Created: ${file}.tar.gz"
+            ;;
+        "tar.bz2")
+            tar -cjf "${file}.tar.bz2" "$file"
+            echo "✅ Created: ${file}.tar.bz2"
+            ;;
+        "zip")
+            zip -r "${file}.zip" "$file"
+            echo "✅ Created: ${file}.zip"
+            ;;
+        *)
+            echo "❌ Unsupported format: $format"
+            return 1
+            ;;
+    esac
+}
+
+extract() {
+    if [ ! -f "$1" ]; then
+        echo "❌ File not found: $1"
+        return 1
+    fi
+    
+    case "$1" in
+        *.tar.bz2)   tar xjf "$1"     ;;
+        *.tar.gz)    tar xzf "$1"     ;;
+        *.bz2)       bunzip2 "$1"    ;;
+        *.rar)       unrar x "$1"    ;;
+        *.gz)        gunzip "$1"     ;;
+        *.tar)       tar xf "$1"     ;;
+        *.tbz2)      tar xjf "$1"    ;;
+        *.tgz)       tar xzf "$1"    ;;
+        *.zip)       unzip "$1"      ;;
+        *.Z)         uncompress "$1" ;;
+        *.7z)        7z x "$1"       ;;
+        *.xz)        unxz "$1"       ;;
+        *.lzma)      unlzma "$1"     ;;
+        *)           echo "❌ Cannot extract '$1' - unknown format" ;;
+    esac
+}
+
+# Search and find utilities
+find_and_replace() {
+    local search="$1"
+    local replace="$2"
+    local path="${3:-.}"
+    
+    if [ -z "$search" ] || [ -z "$replace" ]; then
+        echo "Usage: find_and_replace <search> <replace> [path]"
+        return 1
+    fi
+    
+    {{- if lookPath "rg" }}
+    if command -v rg >/dev/null 2>&1; then
+        rg --files-with-matches "$search" "$path" | xargs sed -i.bak "s/$search/$replace/g"
+    else
+    {{- end }}
+        find "$path" -type f -exec grep -l "$search" {} \; | xargs sed -i.bak "s/$search/$replace/g"
+    {{- if lookPath "rg" }}
+    fi
+    {{- end }}
+    
+    echo "✅ Replaced '$search' with '$replace' in $path"
+}
+
+# Find files by name
+ff() {
+    local name="$1"
+    local path="${2:-.}"
+    
+    if [ -z "$name" ]; then
+        echo "Usage: ff <filename> [path]"
+        return 1
+    fi
+    
+    {{- if lookPath "fd" }}
+    fd "$name" "$path"
+    {{- else }}
+    find "$path" -name "*$name*" -type f
+    {{- end }}
+}
+
+# Find directories by name
+fd_dir() {
+    local name="$1"
+    local path="${2:-.}"
+    
+    if [ -z "$name" ]; then
+        echo "Usage: fd_dir <dirname> [path]"
+        return 1
+    fi
+    
+    {{- if lookPath "fd" }}
+    fd --type d "$name" "$path"
+    {{- else }}
+    find "$path" -name "*$name*" -type d
+    {{- end }}
+}
+
+# Process management
+killall_by_name() {
+    local name="$1"
+    if [ -z "$name" ]; then
+        echo "Usage: killall_by_name <process_name>"
+        return 1
+    fi
+    
+    local pids=$(pgrep -f "$name")
+    if [ -n "$pids" ]; then
+        echo "Killing processes matching '$name':"
+        ps aux | grep "$name" | grep -v grep
+        kill $pids
+        echo "✅ Processes killed"
+    else
+        echo "❌ No processes found matching '$name'"
+    fi
+}
+
+# Memory and disk usage
+memory_usage() {
+    local process="$1"
+    if [ -n "$process" ]; then
+        ps aux | grep "$process" | awk '{print $4}' | awk '{sum += $1} END {print "Memory usage: " sum "%"}'
+    else
+        {{- if eq .chezmoi.os "darwin" }}
+        vm_stat | grep "Pages active" | awk '{print $3}' | sed 's/\.//'
+        {{- else if eq .chezmoi.os "linux" }}
+        free -m | awk 'NR==2{printf "Memory Usage: %s/%sMB (%.2f%%)\n", $3,$2,$3*100/$2 }'
+        {{- end }}
+    fi
+}
+
+disk_usage() {
+    local path="${1:-.}"
+    {{- if lookPath "dust" }}
+    dust -d 1 "$path"
+    {{- else }}
+    du -h -d 1 "$path" | sort -hr
+    {{- end }}
+}
+
+# Network utilities
+check_port() {
+    local host="${1:-localhost}"
+    local port="$2"
+    
+    if [ -z "$port" ]; then
+        echo "Usage: check_port [host] <port>"
+        return 1
+    fi
+    
+    {{- if lookPath "nc" }}
+    if nc -z "$host" "$port" 2>/dev/null; then
+        echo "✅ $host:$port is open"
+        return 0
+    else
+        echo "❌ $host:$port is closed"
+        return 1
+    fi
+    {{- else }}
+    if timeout 3 bash -c "</dev/tcp/$host/$port" 2>/dev/null; then
+        echo "✅ $host:$port is open"
+        return 0
+    else
+        echo "❌ $host:$port is closed"
+        return 1
+    fi
+    {{- end }}
+}
+
+get_external_ip() {
+    {{- if lookPath "curl" }}
+    curl -s ifconfig.me || curl -s icanhazip.com || echo "Unable to get external IP"
+    {{- else if lookPath "wget" }}
+    wget -qO- ifconfig.me || echo "Unable to get external IP"
+    {{- else }}
+    echo "curl or wget required to get external IP"
+    {{- end }}
+}
+
+# JSON and data processing
+{{- if lookPath "jq" }}
+json_pretty() {
+    local file="$1"
+    if [ -z "$file" ]; then
+        jq '.'
+    else
+        jq '.' "$file"
+    fi
+}
+
+json_minify() {
+    local file="$1"
+    if [ -z "$file" ]; then
+        jq -c '.'
+    else
+        jq -c '.' "$file"
+    fi
+}
+
+json_keys() {
+    local file="$1"
+    if [ -z "$file" ]; then
+        jq 'keys'
+    else
+        jq 'keys' "$file"
+    fi
+}
+{{- end }}
+
+# Text processing
+lowercase() {
+    echo "$1" | tr '[:upper:]' '[:lower:]'
+}
+
+uppercase() {
+    echo "$1" | tr '[:lower:]' '[:upper:]'
+}
+
+trim() {
+    echo "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+}
+
+# Performance measurement
+timeit() {
+    local start=$(date +%s.%N)
+    "$@"
+    local end=$(date +%s.%N)
+    local duration
+    {{- if lookPath "bc" }}
+    duration=$(echo "$end - $start" | bc)
+    {{- else }}
+    duration=$(python3 -c "print($end - $start)" 2>/dev/null || echo "Unable to calculate")
+    {{- end }}
+    echo "⏱️  Execution time: ${duration}s"
+}
+
+# Git utilities
+{{- if lookPath "git" }}
+git_clean_branches() {
+    echo "🧹 Cleaning merged branches..."
+    git branch --merged | grep -v "\*\|main\|master\|develop" | xargs -n 1 git branch -d
+    echo "✅ Cleaned merged branches"
+}
+
+git_current_branch() {
+    git branch --show-current 2>/dev/null || git rev-parse --abbrev-ref HEAD 2>/dev/null
+}
+
+git_repo_size() {
+    local size=$(git count-objects -vH | grep size-pack | awk '{print $2}')
+    echo "Repository size: $size"
+}
+
+git_contributors() {
+    git shortlog -sn --all --no-merges
+}
+
+git_file_history() {
+    local file="$1"
+    if [ -z "$file" ]; then
+        echo "Usage: git_file_history <file>"
+        return 1
+    fi
+    git log --follow --patch -- "$file"
+}
+
+git_diff_words() {
+    git diff --word-diff=color "$@"
+}
+{{- end }}
+
+# Development utilities
+{{- if lookPath "node" }}
+npm_list_global() {
+    npm list -g --depth=0
+}
+
+npm_outdated_global() {
+    npm outdated -g
+}
+
+npm_update_global() {
+    npm update -g
+}
+{{- end }}
+
+{{- if lookPath "python" }}
+python_serve() {
+    local port="${1:-8000}"
+    echo "🐍 Starting Python HTTP server on port $port..."
+    {{- if lookPath "python3" }}
+    python3 -m http.server "$port"
+    {{- else }}
+    python -m SimpleHTTPServer "$port"
+    {{- end }}
+}
+
+python_venv_create() {
+    local name="${1:-venv}"
+    python3 -m venv "$name"
+    echo "✅ Virtual environment created: $name"
+    echo "Activate with: source $name/bin/activate"
+}
+{{- end }}
+
+# Quick HTTP server
+{{- if lookPath "python" }}
+serve() {
+    local port="${1:-8000}"
+    python_serve "$port"
+}
+{{- else if lookPath "node" }}
+serve() {
+    local port="${1:-8000}"
+    echo "🟢 Starting Node.js HTTP server on port $port..."
+    npx http-server -p "$port"
+}
+{{- end }}
+
+# Weather (fun utility)
+weather() {
+    local location="${1:-}"
+    {{- if lookPath "curl" }}
+    if [ -n "$location" ]; then
+        curl -s "wttr.in/$location"
+    else
+        curl -s "wttr.in"
+    fi
+    {{- else }}
+    echo "curl required for weather function"
+    {{- end }}
+}
+
+# QR code generation (if qrencode is available)
+{{- if lookPath "qrencode" }}
+qr() {
+    local text="$1"
+    if [ -z "$text" ]; then
+        echo "Usage: qr <text>"
+        return 1
+    fi
+    qrencode -t UTF8 "$text"
+}
+{{- end }}
+
+# Password generation
+generate_password() {
+    local length="${1:-16}"
+    {{- if lookPath "openssl" }}
+    openssl rand -base64 $((length * 3 / 4)) | tr -d "=+/" | cut -c1-$length
+    {{- else }}
+    # Fallback using /dev/urandom
+    tr -dc 'A-Za-z0-9!@#$%^&*()_+' < /dev/urandom | head -c "$length" && echo
+    {{- end }}
+}
+
+# System information
+system_info() {
+    echo "🖥️  System Information"
+    echo "===================="
+    echo "OS: $(uname -s)"
+    echo "Kernel: $(uname -r)"
+    echo "Architecture: $(uname -m)"
+    echo "Hostname: $(hostname)"
+    echo "Uptime: $(uptime | cut -d',' -f1 | cut -d' ' -f4-)"
+    
+    {{- if eq .chezmoi.os "linux" }}
+    if [ -f /etc/os-release ]; then
+        echo "Distribution: $(grep PRETTY_NAME /etc/os-release | cut -d'"' -f2)"
+    fi
+    {{- end }}
+    
+    {{- if eq .chezmoi.os "darwin" }}
+    echo "macOS Version: $(sw_vers -productVersion)"
+    {{- end }}
+}
+
+# Help function
+functions_help() {
+    echo "🔧 Available Functions:"
+    echo ""
+    echo "📁 Navigation & Files:"
+    echo "  • mcd <dir>          - Create directory and cd into it"
+    echo "  • up [levels]        - Go up directory levels"
+    echo "  • workspace          - Change to workspace directory"
+    echo "  • backup <file>      - Create timestamped backup"
+    echo "  • extract <archive>  - Extract various archive formats"
+    echo "  • archive <dir>      - Create archives"
+    echo ""
+    echo "🔍 Search & Find:"
+    echo "  • ff <name>          - Find files by name"
+    echo "  • fd_dir <name>      - Find directories by name"
+    echo "  • find_and_replace   - Replace text in files"
+    echo ""
+    echo "🌐 Network:"
+    echo "  • check_port <port>  - Check if port is open"
+    echo "  • get_external_ip    - Show external IP address"
+    echo ""
+    echo "⚡ Performance:"
+    echo "  • timeit <command>   - Time command execution"
+    echo "  • memory_usage       - Show memory usage"
+    echo "  • disk_usage [path]  - Show disk usage"
+    echo ""
+    echo "🔧 Development:"
+    echo "  • serve [port]       - Start HTTP server"
+    echo "  • git_clean_branches - Clean merged git branches"
+    echo "  • generate_password  - Generate secure password"
+    echo ""
+    echo "ℹ️  Info:"
+    echo "  • system_info        - System information"
+    echo "  • weather [location] - Weather forecast"
+}

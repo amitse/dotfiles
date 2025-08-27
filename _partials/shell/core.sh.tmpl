@@ -1,0 +1,119 @@
+# Core shell configuration
+# Basic settings that work across all shells and platforms
+
+# Set default editor
+export EDITOR="${EDITOR:-{{ .editor.default }}}"
+export VISUAL="${VISUAL:-$EDITOR}"
+
+# Improve path handling
+{{- if not (eq .chezmoi.os "windows") }}
+# Add local bin directories to PATH
+if [ -d "$HOME/.local/bin" ]; then
+    export PATH="$HOME/.local/bin:$PATH"
+fi
+
+if [ -d "$HOME/bin" ]; then
+    export PATH="$HOME/bin:$PATH"
+fi
+
+# Cargo/Rust binaries
+if [ -d "$HOME/.cargo/bin" ]; then
+    export PATH="$HOME/.cargo/bin:$PATH"
+fi
+{{- end }}
+
+# Core aliases that work everywhere
+alias reload='exec ${SHELL} -l'
+alias path='echo -e ${PATH//:/\\n}'
+alias h='history'
+alias c='clear'
+
+# Safety aliases
+alias rm='rm -i'
+alias cp='cp -i'
+alias mv='mv -i'
+
+# Directory navigation
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias .....='cd ../../../..'
+
+# Quick directory creation
+mkcd() {
+    mkdir -p "$1" && cd "$1"
+}
+
+# Extract function for various archive formats
+extract() {
+    if [ -f "$1" ]; then
+        case "$1" in
+            *.tar.bz2)   tar xjf "$1"     ;;
+            *.tar.gz)    tar xzf "$1"     ;;
+            *.bz2)       bunzip2 "$1"     ;;
+            *.rar)       unrar x "$1"     ;;
+            *.gz)        gunzip "$1"      ;;
+            *.tar)       tar xf "$1"      ;;
+            *.tbz2)      tar xjf "$1"     ;;
+            *.tgz)       tar xzf "$1"     ;;
+            *.zip)       unzip "$1"       ;;
+            *.Z)         uncompress "$1"  ;;
+            *.7z)        7z x "$1"        ;;
+            *)           echo "'$1' cannot be extracted via extract()" ;;
+        esac
+    else
+        echo "'$1' is not a valid file"
+    fi
+}
+
+# Backup function
+backup() {
+    cp "$1"{,.bak}
+}
+
+# Quick file search
+qfind() {
+    find . -name "*$1*" 2>/dev/null
+}
+
+# Process management
+psgrep() {
+    ps aux | grep "$1" | grep -v grep
+}
+
+# Network utilities
+{{- if not (eq .chezmoi.os "windows") }}
+myip() {
+    curl -s http://whatismyip.akamai.com/ 2>/dev/null || echo "Network unavailable"
+}
+
+localip() {
+    if command -v ip >/dev/null 2>&1; then
+        ip route get 1 2>/dev/null | awk '{print $7; exit}' | head -1
+    elif command -v ifconfig >/dev/null 2>&1; then
+        ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1' | head -1 | awk '{print $2}' | cut -d: -f2
+    else
+        echo "No network tools available"
+    fi
+}
+{{- end }}
+
+# Date/time utilities
+alias now='date +"%T"'
+alias nowtime=now
+alias nowdate='date +"%d-%m-%Y"'
+
+# Calculator (if bc is available)
+{{- if lookPath "bc" }}
+calc() {
+    echo "scale=3; $*" | bc -l
+}
+{{- end }}
+
+# Weather function (requires curl)
+{{- if lookPath "curl" }}
+weather() {
+    local city="${1:-}"
+    curl -s "wttr.in/${city}?format=3" 2>/dev/null || echo "Weather service unavailable"
+}
+{{- end }}

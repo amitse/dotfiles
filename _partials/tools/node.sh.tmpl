@@ -1,0 +1,626 @@
+# Node.js Configuration and Utilities
+# Advanced Node.js, npm, yarn, and development utilities
+
+{{- if lookPath "node" }}
+
+# Node.js environment information
+node_info() {
+    echo "🟢 Node.js Environment Information"
+    echo "=================================="
+    echo ""
+    
+    # Version information
+    echo "📋 Version Information:"
+    echo "  Node.js: $(node --version)"
+    {{- if lookPath "npm" }}
+    echo "  npm: $(npm --version)"
+    {{- end }}
+    {{- if lookPath "yarn" }}
+    echo "  Yarn: $(yarn --version)"
+    {{- end }}
+    {{- if lookPath "pnpm" }}
+    echo "  pnpm: $(pnpm --version)"
+    {{- end }}
+    echo ""
+    
+    # Environment details
+    echo "🌍 Environment:"
+    echo "  NODE_ENV: ${NODE_ENV:-not set}"
+    echo "  Node executable: $(which node)"
+    echo "  Global modules: $(npm root -g 2>/dev/null || echo "Unknown")"
+    echo ""
+    
+    # Memory and performance
+    echo "💾 Runtime Information:"
+    node -e "console.log('V8 version:', process.versions.v8); console.log('Platform:', process.platform); console.log('Architecture:', process.arch);"
+}
+
+# Package management utilities
+{{- if lookPath "npm" }}
+npm_global_list() {
+    echo "📦 Global npm Packages"
+    echo "====================="
+    npm list -g --depth=0 --no-unicode
+}
+
+npm_outdated_check() {
+    echo "📊 Outdated Packages Check"
+    echo "=========================="
+    echo ""
+    echo "🌍 Global packages:"
+    npm outdated -g --depth=0 2>/dev/null || echo "All global packages are up to date"
+    echo ""
+    if [ -f "package.json" ]; then
+        echo "📁 Local packages:"
+        npm outdated --depth=0 2>/dev/null || echo "All local packages are up to date"
+    else
+        echo "ℹ️  No package.json found in current directory"
+    fi
+}
+
+npm_security_audit() {
+    if [ -f "package.json" ]; then
+        echo "🔒 npm Security Audit"
+        echo "===================="
+        npm audit
+        echo ""
+        echo "💡 To fix issues, run: npm audit fix"
+    else
+        echo "❌ No package.json found in current directory"
+    fi
+}
+
+npm_cache_clean() {
+    echo "🧹 Cleaning npm cache..."
+    npm cache clean --force
+    echo "✅ npm cache cleaned"
+}
+
+npm_doctor() {
+    echo "🏥 npm Doctor"
+    echo "============"
+    npm doctor
+}
+
+npm_update_all() {
+    echo "⬆️  Updating npm packages..."
+    
+    # Update global packages
+    echo "🌍 Updating global packages..."
+    npm update -g
+    
+    # Update local packages if package.json exists
+    if [ -f "package.json" ]; then
+        echo "📁 Updating local packages..."
+        npm update
+        echo "✅ Packages updated"
+    else
+        echo "ℹ️  No package.json found for local updates"
+    fi
+}
+
+npm_install_essentials() {
+    echo "🔧 Installing essential global npm packages..."
+    
+    local essentials=(
+        "eslint"
+        "prettier"
+        "typescript"
+        "ts-node"
+        "nodemon"
+        "http-server"
+        "json-server"
+        "npm-check-updates"
+        "serve"
+    )
+    
+    for package in "${essentials[@]}"; do
+        echo "📦 Installing $package..."
+        npm install -g "$package"
+    done
+    
+    echo "✅ Essential packages installed"
+}
+{{- end }}
+
+{{- if lookPath "yarn" }}
+yarn_global_list() {
+    echo "🧶 Global Yarn Packages"
+    echo "======================"
+    yarn global list --depth=0
+}
+
+yarn_outdated_check() {
+    echo "📊 Yarn Outdated Check"
+    echo "======================"
+    
+    if [ -f "package.json" ]; then
+        yarn outdated
+    else
+        echo "❌ No package.json found in current directory"
+    fi
+}
+
+yarn_cache_clean() {
+    echo "🧹 Cleaning yarn cache..."
+    yarn cache clean
+    echo "✅ Yarn cache cleaned"
+}
+
+yarn_upgrade_interactive() {
+    if [ -f "package.json" ]; then
+        echo "🔄 Interactive package upgrade..."
+        yarn upgrade-interactive
+    else
+        echo "❌ No package.json found in current directory"
+    fi
+}
+
+yarn_audit_security() {
+    if [ -f "package.json" ]; then
+        echo "🔒 Yarn Security Audit"
+        echo "====================="
+        yarn audit
+    else
+        echo "❌ No package.json found in current directory"
+    fi
+}
+{{- end }}
+
+{{- if lookPath "pnpm" }}
+pnpm_global_list() {
+    echo "⚡ Global pnpm Packages"
+    echo "======================"
+    pnpm list -g --depth=0
+}
+
+pnpm_outdated_check() {
+    echo "📊 pnpm Outdated Check"
+    echo "======================"
+    
+    if [ -f "package.json" ]; then
+        pnpm outdated
+    else
+        echo "❌ No package.json found in current directory"
+    fi
+}
+
+pnpm_audit_security() {
+    if [ -f "package.json" ]; then
+        echo "🔒 pnpm Security Audit"
+        echo "======================"
+        pnpm audit
+    else
+        echo "❌ No package.json found in current directory"
+    fi
+}
+{{- end }}
+
+# Project management utilities
+node_create_project() {
+    local project_name="$1"
+    local template="${2:-basic}"
+    
+    if [ -z "$project_name" ]; then
+        echo "Usage: node_create_project <project_name> [template]"
+        echo "Templates: basic, express, typescript, react, vue, next"
+        return 1
+    fi
+    
+    if [ -d "$project_name" ]; then
+        echo "❌ Directory '$project_name' already exists"
+        return 1
+    fi
+    
+    echo "🚀 Creating Node.js project: $project_name"
+    mkdir -p "$project_name"
+    cd "$project_name"
+    
+    case "$template" in
+        "basic")
+            npm init -y
+            echo "console.log('Hello, Node.js!');" > index.js
+            echo "node_modules/" > .gitignore
+            echo ".env" >> .gitignore
+            ;;
+        "express")
+            npm init -y
+            {{- if lookPath "npm" }}
+            npm install express
+            npm install --save-dev nodemon
+            {{- end }}
+            cat > index.js << 'EOF'
+const express = require('express');
+const app = express();
+const port = process.env.PORT || 3000;
+
+app.use(express.json());
+
+app.get('/', (req, res) => {
+  res.json({ message: 'Hello, Express!' });
+});
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});
+EOF
+            echo "node_modules/" > .gitignore
+            echo ".env" >> .gitignore
+            ;;
+        "typescript")
+            npm init -y
+            {{- if lookPath "npm" }}
+            npm install --save-dev typescript @types/node ts-node nodemon
+            {{- end }}
+            cat > tsconfig.json << 'EOF'
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+EOF
+            mkdir -p src
+            echo "console.log('Hello, TypeScript!');" > src/index.ts
+            echo "node_modules/" > .gitignore
+            echo "dist/" >> .gitignore
+            echo ".env" >> .gitignore
+            ;;
+        *)
+            echo "❌ Unknown template: $template"
+            cd ..
+            rmdir "$project_name"
+            return 1
+            ;;
+    esac
+    
+    # Initialize git
+    {{- if lookPath "git" }}
+    git init
+    git add .
+    git commit -m "Initial commit"
+    {{- end }}
+    
+    echo "✅ Project created: $project_name"
+    echo "📁 Location: $(pwd)"
+}
+
+# Development server utilities
+node_serve() {
+    local port="${1:-3000}"
+    local file="${2:-index.js}"
+    
+    if [ ! -f "$file" ]; then
+        echo "❌ File not found: $file"
+        return 1
+    fi
+    
+    echo "🚀 Starting Node.js server on port $port..."
+    echo "📁 Serving: $file"
+    
+    {{- if lookPath "nodemon" }}
+    nodemon --watch . --ext js,json "$file"
+    {{- else }}
+    node "$file"
+    {{- end }}
+}
+
+node_http_server() {
+    local port="${1:-8080}"
+    local directory="${2:-.}"
+    
+    echo "🌐 Starting HTTP server on port $port..."
+    echo "📁 Serving directory: $directory"
+    
+    {{- if lookPath "http-server" }}
+    http-server "$directory" -p "$port" -o
+    {{- else if lookPath "serve" }}
+    serve -s "$directory" -l "$port"
+    {{- else }}
+    # Fallback to Python if available
+    {{- if lookPath "python3" }}
+    cd "$directory" && python3 -m http.server "$port"
+    {{- else if lookPath "python" }}
+    cd "$directory" && python -m SimpleHTTPServer "$port"
+    {{- else }}
+    echo "❌ No HTTP server available. Install http-server globally: npm install -g http-server"
+    {{- end }}
+    {{- end }}
+}
+
+# Performance and debugging
+node_memory_usage() {
+    local script="$1"
+    
+    if [ -z "$script" ]; then
+        echo "Usage: node_memory_usage <script.js>"
+        return 1
+    fi
+    
+    echo "💾 Memory usage analysis for: $script"
+    node --expose-gc -e "
+        const used = process.memoryUsage();
+        console.log('Memory usage before:', used);
+        
+        require('./$script');
+        
+        global.gc();
+        const afterGC = process.memoryUsage();
+        console.log('Memory usage after GC:', afterGC);
+    "
+}
+
+node_profile() {
+    local script="$1"
+    
+    if [ -z "$script" ]; then
+        echo "Usage: node_profile <script.js>"
+        return 1
+    fi
+    
+    echo "⏱️  Profiling: $script"
+    node --prof "$script"
+    
+    local prof_file=$(ls isolate-*.log | head -1)
+    if [ -n "$prof_file" ]; then
+        echo "📊 Processing profile: $prof_file"
+        node --prof-process "$prof_file" > profile-report.txt
+        echo "✅ Profile report saved to: profile-report.txt"
+    fi
+}
+
+node_inspect() {
+    local script="$1"
+    local port="${2:-9229}"
+    
+    if [ -z "$script" ]; then
+        echo "Usage: node_inspect <script.js> [port]"
+        return 1
+    fi
+    
+    echo "🔍 Starting Node.js inspector on port $port..."
+    echo "🌐 Open Chrome DevTools: chrome://inspect"
+    node --inspect="0.0.0.0:$port" "$script"
+}
+
+# Package.json utilities
+package_json_info() {
+    if [ ! -f "package.json" ]; then
+        echo "❌ No package.json found in current directory"
+        return 1
+    fi
+    
+    echo "📦 Package.json Information"
+    echo "=========================="
+    echo ""
+    
+    # Basic info
+    {{- if lookPath "jq" }}
+    echo "📋 Basic Information:"
+    jq -r '"Name: " + .name + "\nVersion: " + .version + "\nDescription: " + (.description // "No description")' package.json
+    echo ""
+    
+    echo "🔧 Scripts:"
+    jq -r '.scripts | to_entries[] | "  " + .key + ": " + .value' package.json 2>/dev/null || echo "  No scripts defined"
+    echo ""
+    
+    echo "📦 Dependencies:"
+    local dep_count=$(jq '.dependencies | length' package.json 2>/dev/null || echo "0")
+    echo "  Production: $dep_count packages"
+    
+    local dev_count=$(jq '.devDependencies | length' package.json 2>/dev/null || echo "0")
+    echo "  Development: $dev_count packages"
+    {{- else }}
+    echo "📋 Basic Information:"
+    grep -E '"name"|"version"|"description"' package.json | sed 's/^[ ]*/  /'
+    echo ""
+    
+    echo "🔧 Scripts:"
+    if grep -q '"scripts"' package.json; then
+        grep -A 20 '"scripts"' package.json | grep ':' | grep -v '"scripts"' | sed 's/^[ ]*/  /'
+    else
+        echo "  No scripts defined"
+    fi
+    {{- end }}
+}
+
+package_json_validate() {
+    if [ ! -f "package.json" ]; then
+        echo "❌ No package.json found in current directory"
+        return 1
+    fi
+    
+    echo "✅ Validating package.json..."
+    
+    # Check JSON syntax
+    if node -e "JSON.parse(require('fs').readFileSync('package.json', 'utf8'))" 2>/dev/null; then
+        echo "✅ Valid JSON syntax"
+    else
+        echo "❌ Invalid JSON syntax"
+        return 1
+    fi
+    
+    # Check required fields
+    {{- if lookPath "jq" }}
+    local name=$(jq -r '.name // empty' package.json)
+    local version=$(jq -r '.version // empty' package.json)
+    
+    if [ -n "$name" ]; then
+        echo "✅ Name field present: $name"
+    else
+        echo "⚠️  Missing name field"
+    fi
+    
+    if [ -n "$version" ]; then
+        echo "✅ Version field present: $version"
+    else
+        echo "⚠️  Missing version field"
+    fi
+    {{- end }}
+    
+    echo "✅ package.json validation complete"
+}
+
+# Node.js version management helpers
+{{- if lookPath "nvm" }}
+nvm_list_installed() {
+    echo "📋 Installed Node.js Versions"
+    echo "============================="
+    nvm list
+}
+
+nvm_install_lts() {
+    echo "⬇️  Installing latest LTS Node.js..."
+    nvm install --lts
+    nvm use --lts
+    echo "✅ LTS Node.js installed and activated"
+}
+
+nvm_use_project() {
+    if [ -f ".nvmrc" ]; then
+        echo "🔄 Using Node.js version from .nvmrc..."
+        nvm use
+    else
+        echo "❌ No .nvmrc file found in current directory"
+        return 1
+    fi
+}
+{{- end }}
+
+# Code quality utilities
+{{- if lookPath "eslint" }}
+eslint_init() {
+    echo "🔧 Initializing ESLint..."
+    npx eslint --init
+}
+
+eslint_fix() {
+    echo "🔧 Running ESLint with auto-fix..."
+    npx eslint . --fix
+}
+{{- end }}
+
+{{- if lookPath "prettier" }}
+prettier_format() {
+    local target="${1:-.}"
+    echo "✨ Formatting code with Prettier..."
+    npx prettier --write "$target"
+}
+
+prettier_check() {
+    local target="${1:-.}"
+    echo "✅ Checking code formatting..."
+    npx prettier --check "$target"
+}
+{{- end }}
+
+# Node.js cleanup utilities
+node_cleanup() {
+    echo "🧹 Node.js Cleanup"
+    echo "=================="
+    
+    # Clean npm cache
+    {{- if lookPath "npm" }}
+    echo "🧽 Cleaning npm cache..."
+    npm cache clean --force
+    {{- end }}
+    
+    # Clean yarn cache
+    {{- if lookPath "yarn" }}
+    echo "🧽 Cleaning yarn cache..."
+    yarn cache clean
+    {{- end }}
+    
+    # Remove node_modules if present
+    if [ -d "node_modules" ]; then
+        echo "🗑️  Remove node_modules directory? (y/N)"
+        read -r response
+        if [[ "$response" =~ ^[Yy]$ ]]; then
+            rm -rf node_modules
+            echo "✅ Removed node_modules"
+        fi
+    fi
+    
+    # Clean package-lock and yarn.lock conflicts
+    if [ -f "package-lock.json" ] && [ -f "yarn.lock" ]; then
+        echo "⚠️  Found both package-lock.json and yarn.lock"
+        echo "Choose which to keep: (1) npm (2) yarn (3) keep both"
+        read -r choice
+        case $choice in
+            1) rm yarn.lock && echo "✅ Removed yarn.lock" ;;
+            2) rm package-lock.json && echo "✅ Removed package-lock.json" ;;
+            *) echo "ℹ️  Keeping both lock files" ;;
+        esac
+    fi
+    
+    echo "✅ Node.js cleanup complete"
+}
+
+# Node.js help function
+node_help() {
+    echo "🟢 Node.js Functions Available:"
+    echo ""
+    echo "ℹ️  Information:"
+    echo "  • node_info              - Environment and version info"
+    echo "  • package_json_info      - Package.json analysis"
+    echo "  • package_json_validate  - Validate package.json"
+    echo ""
+    echo "📦 Package Management:"
+    {{- if lookPath "npm" }}
+    echo "  • npm_global_list        - List global packages"
+    echo "  • npm_outdated_check     - Check for outdated packages"
+    echo "  • npm_security_audit     - Security vulnerability scan"
+    echo "  • npm_update_all         - Update all packages"
+    echo "  • npm_install_essentials - Install essential dev tools"
+    {{- end }}
+    {{- if lookPath "yarn" }}
+    echo "  • yarn_global_list       - List global yarn packages"
+    echo "  • yarn_outdated_check    - Check yarn outdated"
+    echo "  • yarn_upgrade_interactive - Interactive upgrade"
+    {{- end }}
+    echo ""
+    echo "🚀 Development:"
+    echo "  • node_create_project    - Create new Node.js project"
+    echo "  • node_serve             - Start development server"
+    echo "  • node_http_server       - Static file server"
+    echo ""
+    echo "🔍 Debugging & Performance:"
+    echo "  • node_memory_usage      - Analyze memory usage"
+    echo "  • node_profile           - Profile performance"
+    echo "  • node_inspect           - Start inspector for debugging"
+    echo ""
+    echo "🧹 Maintenance:"
+    echo "  • node_cleanup           - Clean caches and conflicts"
+    {{- if lookPath "npm" }}
+    echo "  • npm_cache_clean        - Clean npm cache"
+    echo "  • npm_doctor             - Run npm doctor"
+    {{- end }}
+    echo ""
+    {{- if lookPath "nvm" }}
+    echo "🔄 Version Management (nvm):"
+    echo "  • nvm_list_installed     - List installed versions"
+    echo "  • nvm_install_lts        - Install latest LTS"
+    echo "  • nvm_use_project        - Use .nvmrc version"
+    echo ""
+    {{- end }}
+    echo "✨ Code Quality:"
+    {{- if lookPath "eslint" }}
+    echo "  • eslint_init            - Initialize ESLint"
+    echo "  • eslint_fix             - Run ESLint with auto-fix"
+    {{- end }}
+    {{- if lookPath "prettier" }}
+    echo "  • prettier_format        - Format code with Prettier"
+    echo "  • prettier_check         - Check code formatting"
+    {{- end }}
+}
+
+{{- end }}

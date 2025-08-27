@@ -1,0 +1,675 @@
+# Python Configuration and Utilities
+# Advanced Python, pip, virtual environment, and development utilities
+
+{{- if lookPath "python" || lookPath "python3" }}
+
+# Determine Python command
+{{- if lookPath "python3" }}
+PYTHON_CMD="python3"
+PIP_CMD="python3 -m pip"
+{{- else }}
+PYTHON_CMD="python"
+PIP_CMD="python -m pip"
+{{- end }}
+
+# Python environment information
+python_info() {
+    echo "🐍 Python Environment Information"
+    echo "================================="
+    echo ""
+    
+    # Version information
+    echo "📋 Version Information:"
+    if command -v python3 >/dev/null 2>&1; then
+        echo "  Python 3: $(python3 --version)"
+    fi
+    if command -v python >/dev/null 2>&1; then
+        echo "  Python: $(python --version)"
+    fi
+    echo "  pip: $($PIP_CMD --version)"
+    echo ""
+    
+    # Environment details
+    echo "🌍 Environment:"
+    $PYTHON_CMD -c "
+import sys
+import os
+print('  Python executable:', sys.executable)
+print('  Python path:', sys.prefix)
+print('  Virtual env:', os.environ.get('VIRTUAL_ENV', 'Not in virtual env'))
+print('  Site packages:', [p for p in sys.path if 'site-packages' in p][:2])
+"
+    echo ""
+    
+    # System information
+    echo "💻 System Information:"
+    $PYTHON_CMD -c "
+import sys, platform
+print('  Platform:', platform.platform())
+print('  Architecture:', platform.architecture()[0])
+print('  Python implementation:', platform.python_implementation())
+print('  Python compiler:', platform.python_compiler())
+"
+}
+
+# Virtual environment management
+venv_create() {
+    local env_name="${1:-venv}"
+    local python_version="$2"
+    
+    echo "🏗️  Creating virtual environment: $env_name"
+    
+    if [ -n "$python_version" ]; then
+        if command -v "python$python_version" >/dev/null 2>&1; then
+            "python$python_version" -m venv "$env_name"
+        else
+            echo "❌ Python $python_version not found"
+            return 1
+        fi
+    else
+        $PYTHON_CMD -m venv "$env_name"
+    fi
+    
+    echo "✅ Virtual environment created: $env_name"
+    echo "💡 Activate with: source $env_name/bin/activate (Linux/Mac) or $env_name\\Scripts\\activate (Windows)"
+}
+
+venv_activate() {
+    local env_name="${1:-venv}"
+    
+    if [ -f "$env_name/bin/activate" ]; then
+        source "$env_name/bin/activate"
+        echo "✅ Activated virtual environment: $env_name"
+    elif [ -f "$env_name/Scripts/activate" ]; then
+        source "$env_name/Scripts/activate"
+        echo "✅ Activated virtual environment: $env_name"
+    else
+        echo "❌ Virtual environment not found: $env_name"
+        return 1
+    fi
+}
+
+venv_deactivate() {
+    if [ -n "$VIRTUAL_ENV" ]; then
+        deactivate
+        echo "✅ Deactivated virtual environment"
+    else
+        echo "ℹ️  No virtual environment active"
+    fi
+}
+
+venv_remove() {
+    local env_name="${1:-venv}"
+    
+    if [ -d "$env_name" ]; then
+        echo "🗑️  Removing virtual environment: $env_name"
+        rm -rf "$env_name"
+        echo "✅ Virtual environment removed: $env_name"
+    else
+        echo "❌ Virtual environment not found: $env_name"
+        return 1
+    fi
+}
+
+venv_list() {
+    echo "📋 Virtual Environments in Current Directory"
+    echo "==========================================="
+    
+    # Look for common virtual environment directories
+    for dir in venv env .venv .env */venv */env; do
+        if [ -d "$dir" ] && [ -f "$dir/pyvenv.cfg" ]; then
+            local python_version=$(grep "version" "$dir/pyvenv.cfg" | cut -d' ' -f3)
+            echo "  📁 $dir (Python $python_version)"
+        fi
+    done
+}
+
+# Package management
+pip_list_installed() {
+    echo "📦 Installed Python Packages"
+    echo "============================"
+    $PIP_CMD list --format=columns
+}
+
+pip_list_outdated() {
+    echo "📊 Outdated Python Packages"
+    echo "==========================="
+    $PIP_CMD list --outdated --format=columns
+}
+
+pip_upgrade_all() {
+    echo "⬆️  Upgrading all pip packages..."
+    
+    # Get list of outdated packages
+    local outdated=$($PIP_CMD list --outdated --format=freeze | cut -d'=' -f1)
+    
+    if [ -n "$outdated" ]; then
+        echo "$outdated" | xargs -n1 $PIP_CMD install --upgrade
+        echo "✅ All packages upgraded"
+    else
+        echo "ℹ️  All packages are already up to date"
+    fi
+}
+
+pip_freeze_requirements() {
+    local requirements_file="${1:-requirements.txt}"
+    echo "📄 Freezing requirements to: $requirements_file"
+    $PIP_CMD freeze > "$requirements_file"
+    echo "✅ Requirements saved to: $requirements_file"
+}
+
+pip_install_from_requirements() {
+    local requirements_file="${1:-requirements.txt}"
+    
+    if [ ! -f "$requirements_file" ]; then
+        echo "❌ Requirements file not found: $requirements_file"
+        return 1
+    fi
+    
+    echo "📦 Installing from: $requirements_file"
+    $PIP_CMD install -r "$requirements_file"
+    echo "✅ Packages installed from: $requirements_file"
+}
+
+pip_show_package() {
+    local package="$1"
+    
+    if [ -z "$package" ]; then
+        echo "Usage: pip_show_package <package_name>"
+        return 1
+    fi
+    
+    echo "📋 Package Information: $package"
+    echo "==============================="
+    $PIP_CMD show "$package"
+}
+
+pip_install_essentials() {
+    echo "🔧 Installing essential Python packages..."
+    
+    local essentials=(
+        "pip"
+        "setuptools"
+        "wheel"
+        "virtualenv"
+        "pipenv"
+        "black"
+        "flake8"
+        "pytest"
+        "requests"
+        "ipython"
+        "jupyter"
+    )
+    
+    for package in "${essentials[@]}"; do
+        echo "📦 Installing $package..."
+        $PIP_CMD install --upgrade "$package"
+    done
+    
+    echo "✅ Essential packages installed"
+}
+
+# Development tools
+{{- if lookPath "black" }}
+black_format() {
+    local target="${1:-.}"
+    echo "⚫ Formatting Python code with Black..."
+    black "$target"
+    echo "✅ Code formatted"
+}
+
+black_check() {
+    local target="${1:-.}"
+    echo "✅ Checking Python code formatting..."
+    black --check "$target"
+}
+{{- end }}
+
+{{- if lookPath "flake8" }}
+flake8_lint() {
+    local target="${1:-.}"
+    echo "🔍 Linting Python code with flake8..."
+    flake8 "$target"
+}
+{{- end }}
+
+{{- if lookPath "pytest" }}
+pytest_run() {
+    local target="${1:-.}"
+    echo "🧪 Running tests with pytest..."
+    pytest "$target" -v
+}
+
+pytest_coverage() {
+    local target="${1:-.}"
+    echo "📊 Running tests with coverage..."
+    pytest "$target" --cov="$target" --cov-report=html --cov-report=term
+    echo "📁 Coverage report generated in htmlcov/"
+}
+{{- end }}
+
+# Project management
+python_create_project() {
+    local project_name="$1"
+    local template="${2:-basic}"
+    
+    if [ -z "$project_name" ]; then
+        echo "Usage: python_create_project <project_name> [template]"
+        echo "Templates: basic, flask, fastapi, django, cli"
+        return 1
+    fi
+    
+    if [ -d "$project_name" ]; then
+        echo "❌ Directory '$project_name' already exists"
+        return 1
+    fi
+    
+    echo "🚀 Creating Python project: $project_name"
+    mkdir -p "$project_name"
+    cd "$project_name"
+    
+    # Create virtual environment
+    $PYTHON_CMD -m venv venv
+    
+    # Create basic structure
+    mkdir -p src tests docs
+    
+    case "$template" in
+        "basic")
+            echo "print('Hello, Python!')" > src/main.py
+            cat > requirements.txt << 'EOF'
+# Add your dependencies here
+pytest>=6.0
+black>=21.0
+flake8>=3.8
+EOF
+            ;;
+        "flask")
+            cat > src/app.py << 'EOF'
+from flask import Flask, jsonify
+
+app = Flask(__name__)
+
+@app.route('/')
+def hello():
+    return jsonify({"message": "Hello, Flask!"})
+
+@app.route('/health')
+def health():
+    return jsonify({"status": "healthy"})
+
+if __name__ == '__main__':
+    app.run(debug=True)
+EOF
+            cat > requirements.txt << 'EOF'
+Flask>=2.0
+pytest>=6.0
+black>=21.0
+flake8>=3.8
+EOF
+            ;;
+        "fastapi")
+            cat > src/main.py << 'EOF'
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI(title="FastAPI Project", version="1.0.0")
+
+class Message(BaseModel):
+    message: str
+
+@app.get("/")
+async def root():
+    return {"message": "Hello, FastAPI!"}
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
+
+@app.post("/echo")
+async def echo(message: Message):
+    return {"echo": message.message}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+EOF
+            cat > requirements.txt << 'EOF'
+fastapi>=0.68.0
+uvicorn[standard]>=0.15.0
+pydantic>=1.8.0
+pytest>=6.0
+black>=21.0
+flake8>=3.8
+httpx>=0.24.0
+EOF
+            ;;
+        "cli")
+            cat > src/cli.py << 'EOF'
+#!/usr/bin/env python3
+import argparse
+import sys
+
+def main():
+    parser = argparse.ArgumentParser(description="CLI Application")
+    parser.add_argument("--version", action="version", version="1.0.0")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
+    parser.add_argument("command", nargs="?", default="hello", help="Command to run")
+    
+    args = parser.parse_args()
+    
+    if args.verbose:
+        print(f"Running command: {args.command}")
+    
+    if args.command == "hello":
+        print("Hello, CLI!")
+    else:
+        print(f"Unknown command: {args.command}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+EOF
+            chmod +x src/cli.py
+            cat > requirements.txt << 'EOF'
+click>=8.0
+pytest>=6.0
+black>=21.0
+flake8>=3.8
+EOF
+            ;;
+        *)
+            echo "❌ Unknown template: $template"
+            cd ..
+            rmdir "$project_name"
+            return 1
+            ;;
+    esac
+    
+    # Common project files
+    cat > .gitignore << 'EOF'
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+.DS_Store
+.vscode/
+.idea/
+EOF
+    
+    cat > README.md << EOF
+# $project_name
+
+A Python project created with the $template template.
+
+## Setup
+
+1. Create and activate virtual environment:
+   \`\`\`bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\\Scripts\\activate
+   \`\`\`
+
+2. Install dependencies:
+   \`\`\`bash
+   pip install -r requirements.txt
+   \`\`\`
+
+## Development
+
+- Format code: \`black src/\`
+- Lint code: \`flake8 src/\`
+- Run tests: \`pytest\`
+
+## Usage
+
+See the source files in \`src/\` for implementation details.
+EOF
+    
+    # Initialize git
+    {{- if lookPath "git" }}
+    git init
+    git add .
+    git commit -m "Initial commit"
+    {{- end }}
+    
+    echo "✅ Project created: $project_name"
+    echo "📁 Location: $(pwd)"
+    echo "💡 Activate virtual environment: source venv/bin/activate"
+}
+
+# Development server utilities
+python_serve() {
+    local port="${1:-8000}"
+    local directory="${2:-.}"
+    
+    echo "🌐 Starting Python HTTP server on port $port..."
+    echo "📁 Serving directory: $directory"
+    
+    cd "$directory"
+    $PYTHON_CMD -m http.server "$port"
+}
+
+python_profile() {
+    local script="$1"
+    
+    if [ -z "$script" ]; then
+        echo "Usage: python_profile <script.py>"
+        return 1
+    fi
+    
+    echo "⏱️  Profiling Python script: $script"
+    $PYTHON_CMD -m cProfile -s cumulative "$script"
+}
+
+python_memory_profile() {
+    local script="$1"
+    
+    if [ -z "$script" ]; then
+        echo "Usage: python_memory_profile <script.py>"
+        return 1
+    fi
+    
+    {{- if lookPath "pip" }}
+    # Check if memory_profiler is installed
+    if ! $PIP_CMD show memory_profiler >/dev/null 2>&1; then
+        echo "📦 Installing memory_profiler..."
+        $PIP_CMD install memory_profiler
+    fi
+    {{- end }}
+    
+    echo "💾 Memory profiling Python script: $script"
+    $PYTHON_CMD -m memory_profiler "$script"
+}
+
+# Jupyter notebook utilities
+{{- if lookPath "jupyter" }}
+jupyter_start() {
+    local port="${1:-8888}"
+    local directory="${2:-.}"
+    
+    echo "📓 Starting Jupyter Notebook on port $port..."
+    cd "$directory"
+    jupyter notebook --port="$port" --no-browser
+}
+
+jupyter_lab() {
+    local port="${1:-8888}"
+    local directory="${2:-.}"
+    
+    echo "🧪 Starting JupyterLab on port $port..."
+    cd "$directory"
+    jupyter lab --port="$port" --no-browser
+}
+{{- end }}
+
+# Environment analysis
+python_analyze_env() {
+    echo "🔍 Python Environment Analysis"
+    echo "=============================="
+    echo ""
+    
+    # Virtual environment status
+    if [ -n "$VIRTUAL_ENV" ]; then
+        echo "✅ Virtual Environment Active:"
+        echo "  Path: $VIRTUAL_ENV"
+        echo "  Python: $(which python)"
+    else
+        echo "⚠️  No virtual environment active"
+    fi
+    echo ""
+    
+    # Package count
+    local pkg_count=$($PIP_CMD list --format=freeze | wc -l)
+    echo "📦 Installed Packages: $pkg_count"
+    echo ""
+    
+    # Python path analysis
+    echo "🛤️  Python Path:"
+    $PYTHON_CMD -c "import sys; [print(f'  {p}') for p in sys.path if p]"
+    echo ""
+    
+    # Environment variables
+    echo "🌍 Python Environment Variables:"
+    env | grep -E '^PYTHON|^PIP|^VIRTUAL' | sed 's/^/  /'
+}
+
+python_security_scan() {
+    echo "🔒 Python Security Scan"
+    echo "======================"
+    
+    {{- if lookPath "pip" }}
+    # Check if safety is installed
+    if ! $PIP_CMD show safety >/dev/null 2>&1; then
+        echo "📦 Installing safety..."
+        $PIP_CMD install safety
+    fi
+    
+    echo "🔍 Scanning for known security vulnerabilities..."
+    safety check
+    {{- end }}
+}
+
+# Cleanup utilities
+python_cleanup() {
+    echo "🧹 Python Cleanup"
+    echo "================="
+    
+    # Clean __pycache__ directories
+    echo "🗑️  Removing __pycache__ directories..."
+    find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null
+    find . -name "*.pyc" -delete 2>/dev/null
+    find . -name "*.pyo" -delete 2>/dev/null
+    echo "✅ Python cache cleaned"
+    
+    # Clean pip cache
+    echo "🧽 Cleaning pip cache..."
+    $PIP_CMD cache purge
+    echo "✅ Pip cache cleaned"
+    
+    # Clean build artifacts
+    if [ -d "build" ]; then
+        rm -rf build
+        echo "✅ Build directory removed"
+    fi
+    
+    if [ -d "dist" ]; then
+        rm -rf dist
+        echo "✅ Dist directory removed"
+    fi
+    
+    find . -name "*.egg-info" -type d -exec rm -rf {} + 2>/dev/null
+    echo "✅ Egg-info directories removed"
+    
+    echo "✅ Python cleanup complete"
+}
+
+# Python help function
+python_help() {
+    echo "🐍 Python Functions Available:"
+    echo ""
+    echo "ℹ️  Information:"
+    echo "  • python_info            - Environment and version info"
+    echo "  • python_analyze_env     - Detailed environment analysis"
+    echo ""
+    echo "🏗️  Virtual Environments:"
+    echo "  • venv_create [name]     - Create virtual environment"
+    echo "  • venv_activate [name]   - Activate virtual environment"
+    echo "  • venv_deactivate        - Deactivate virtual environment"
+    echo "  • venv_remove [name]     - Remove virtual environment"
+    echo "  • venv_list              - List virtual environments"
+    echo ""
+    echo "📦 Package Management:"
+    echo "  • pip_list_installed     - List installed packages"
+    echo "  • pip_list_outdated      - List outdated packages"
+    echo "  • pip_upgrade_all        - Upgrade all packages"
+    echo "  • pip_freeze_requirements - Save requirements.txt"
+    echo "  • pip_install_from_requirements - Install from requirements.txt"
+    echo "  • pip_install_essentials - Install essential packages"
+    echo "  • pip_show_package       - Show package information"
+    echo ""
+    echo "🚀 Development:"
+    echo "  • python_create_project  - Create new Python project"
+    echo "  • python_serve [port]    - Start HTTP server"
+    echo "  • python_profile         - Profile script performance"
+    echo "  • python_memory_profile  - Memory usage profiling"
+    echo ""
+    {{- if lookPath "jupyter" }}
+    echo "📓 Jupyter:"
+    echo "  • jupyter_start [port]   - Start Jupyter Notebook"
+    echo "  • jupyter_lab [port]     - Start JupyterLab"
+    echo ""
+    {{- end }}
+    echo "✨ Code Quality:"
+    {{- if lookPath "black" }}
+    echo "  • black_format           - Format code with Black"
+    echo "  • black_check            - Check code formatting"
+    {{- end }}
+    {{- if lookPath "flake8" }}
+    echo "  • flake8_lint            - Lint code with flake8"
+    {{- end }}
+    {{- if lookPath "pytest" }}
+    echo "  • pytest_run             - Run tests with pytest"
+    echo "  • pytest_coverage        - Run tests with coverage"
+    {{- end }}
+    echo ""
+    echo "🔒 Security:"
+    echo "  • python_security_scan   - Scan for vulnerabilities"
+    echo ""
+    echo "🧹 Maintenance:"
+    echo "  • python_cleanup         - Clean cache and artifacts"
+}
+
+{{- end }}

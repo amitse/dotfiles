@@ -1,0 +1,504 @@
+# Docker Configuration and Utilities
+# Advanced Docker configuration, aliases, and workflow functions
+
+{{- if lookPath "docker" }}
+
+# Docker system information
+docker_info() {
+    echo "🐳 Docker System Information"
+    echo "==========================="
+    echo ""
+    
+    # Docker version
+    echo "📋 Version Information:"
+    docker version --format "table {{.Client.Version}}\t{{.Server.Version}}" 2>/dev/null || echo "Docker daemon not running"
+    echo ""
+    
+    # System information
+    if docker info >/dev/null 2>&1; then
+        echo "💾 System Resources:"
+        docker system df
+        echo ""
+        
+        echo "📊 Container Statistics:"
+        local running=$(docker ps -q | wc -l)
+        local total=$(docker ps -a -q | wc -l)
+        local images=$(docker images -q | wc -l)
+        local volumes=$(docker volume ls -q | wc -l)
+        local networks=$(docker network ls -q | wc -l)
+        
+        echo "  Running containers: $running"
+        echo "  Total containers: $total"
+        echo "  Images: $images"
+        echo "  Volumes: $volumes"
+        echo "  Networks: $networks"
+        echo ""
+        
+        echo "🖥️  Docker Info:"
+        docker info --format "{{.ServerVersion}} | {{.KernelVersion}} | {{.OperatingSystem}}"
+    else
+        echo "❌ Docker daemon is not running"
+    fi
+}
+
+# Container management
+docker_ps_all() {
+    echo "📦 All Containers"
+    echo "================"
+    docker ps -a --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+}
+
+docker_ps_running() {
+    echo "🏃 Running Containers"
+    echo "===================="
+    docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+}
+
+docker_stop_all() {
+    local containers=$(docker ps -q)
+    if [ -n "$containers" ]; then
+        echo "⏹️  Stopping all running containers..."
+        docker stop $containers
+        echo "✅ All containers stopped"
+    else
+        echo "ℹ️  No running containers to stop"
+    fi
+}
+
+docker_start_all() {
+    local containers=$(docker ps -a -q --filter "status=exited")
+    if [ -n "$containers" ]; then
+        echo "▶️  Starting all stopped containers..."
+        docker start $containers
+        echo "✅ All stopped containers started"
+    else
+        echo "ℹ️  No stopped containers to start"
+    fi
+}
+
+docker_restart_all() {
+    echo "🔄 Restarting all containers..."
+    docker_stop_all
+    sleep 2
+    docker_start_all
+}
+
+# Image management
+docker_images_info() {
+    echo "🖼️  Docker Images"
+    echo "================"
+    docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.ID}}\t{{.Size}}\t{{.CreatedSince}}"
+}
+
+docker_cleanup_images() {
+    echo "🧹 Cleaning up Docker images..."
+    
+    # Remove dangling images
+    local dangling=$(docker images -f "dangling=true" -q)
+    if [ -n "$dangling" ]; then
+        docker rmi $dangling
+        echo "✅ Removed dangling images"
+    else
+        echo "ℹ️  No dangling images to remove"
+    fi
+    
+    # Remove unused images
+    docker image prune -f
+    echo "✅ Removed unused images"
+}
+
+docker_build_optimized() {
+    local dockerfile="${1:-Dockerfile}"
+    local tag="$2"
+    local context="${3:-.}"
+    
+    if [ -z "$tag" ]; then
+        echo "Usage: docker_build_optimized [dockerfile] <tag> [context]"
+        echo "Example: docker_build_optimized Dockerfile myapp:latest ."
+        return 1
+    fi
+    
+    echo "🔨 Building optimized Docker image..."
+    echo "  Dockerfile: $dockerfile"
+    echo "  Tag: $tag"
+    echo "  Context: $context"
+    
+    # Build with BuildKit for better performance
+    DOCKER_BUILDKIT=1 docker build \
+        --file "$dockerfile" \
+        --tag "$tag" \
+        --progress=plain \
+        --no-cache \
+        "$context"
+    
+    echo "✅ Image built: $tag"
+}
+
+# Volume management
+docker_volumes_info() {
+    echo "💾 Docker Volumes"
+    echo "================"
+    docker volume ls --format "table {{.Driver}}\t{{.Name}}\t{{.Scope}}"
+}
+
+docker_cleanup_volumes() {
+    echo "🧹 Cleaning up Docker volumes..."
+    
+    # Remove unused volumes
+    docker volume prune -f
+    echo "✅ Removed unused volumes"
+}
+
+docker_backup_volume() {
+    local volume_name="$1"
+    local backup_file="$2"
+    
+    if [ -z "$volume_name" ] || [ -z "$backup_file" ]; then
+        echo "Usage: docker_backup_volume <volume_name> <backup_file>"
+        echo "Example: docker_backup_volume mydata_vol backup.tar"
+        return 1
+    fi
+    
+    echo "💾 Backing up volume: $volume_name"
+    docker run --rm \
+        -v "$volume_name":/data \
+        -v "$(pwd)":/backup \
+        alpine tar czf "/backup/$backup_file" -C /data .
+    
+    echo "✅ Volume backed up to: $backup_file"
+}
+
+docker_restore_volume() {
+    local volume_name="$1"
+    local backup_file="$2"
+    
+    if [ -z "$volume_name" ] || [ -z "$backup_file" ]; then
+        echo "Usage: docker_restore_volume <volume_name> <backup_file>"
+        echo "Example: docker_restore_volume mydata_vol backup.tar"
+        return 1
+    fi
+    
+    if [ ! -f "$backup_file" ]; then
+        echo "❌ Backup file not found: $backup_file"
+        return 1
+    fi
+    
+    echo "📦 Restoring volume: $volume_name"
+    docker run --rm \
+        -v "$volume_name":/data \
+        -v "$(pwd)":/backup \
+        alpine tar xzf "/backup/$backup_file" -C /data
+    
+    echo "✅ Volume restored from: $backup_file"
+}
+
+# Network management
+docker_networks_info() {
+    echo "🌐 Docker Networks"
+    echo "=================="
+    docker network ls --format "table {{.Name}}\t{{.Driver}}\t{{.Scope}}"
+}
+
+docker_cleanup_networks() {
+    echo "🧹 Cleaning up Docker networks..."
+    
+    # Remove unused networks
+    docker network prune -f
+    echo "✅ Removed unused networks"
+}
+
+# Container utilities
+docker_exec_bash() {
+    local container="$1"
+    
+    if [ -z "$container" ]; then
+        echo "Usage: docker_exec_bash <container_name_or_id>"
+        return 1
+    fi
+    
+    # Try bash first, then sh
+    if docker exec -it "$container" bash 2>/dev/null; then
+        return 0
+    else
+        docker exec -it "$container" sh
+    fi
+}
+
+docker_logs_follow() {
+    local container="$1"
+    local lines="${2:-100}"
+    
+    if [ -z "$container" ]; then
+        echo "Usage: docker_logs_follow <container_name_or_id> [lines]"
+        return 1
+    fi
+    
+    docker logs -f --tail "$lines" "$container"
+}
+
+docker_stats_live() {
+    echo "📊 Live Container Statistics"
+    echo "============================"
+    docker stats --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}\t{{.BlockIO}}"
+}
+
+# Docker Compose utilities
+{{- if lookPath "docker-compose" }}
+compose_up_detached() {
+    local file="${1:-docker-compose.yml}"
+    echo "🚀 Starting services with docker-compose..."
+    docker-compose -f "$file" up -d
+    echo "✅ Services started in detached mode"
+}
+
+compose_down_cleanup() {
+    local file="${1:-docker-compose.yml}"
+    echo "⏹️  Stopping and cleaning up services..."
+    docker-compose -f "$file" down --volumes --remove-orphans
+    echo "✅ Services stopped and cleaned up"
+}
+
+compose_logs_all() {
+    local file="${1:-docker-compose.yml}"
+    local service="$2"
+    
+    if [ -n "$service" ]; then
+        docker-compose -f "$file" logs -f "$service"
+    else
+        docker-compose -f "$file" logs -f
+    fi
+}
+
+compose_restart_service() {
+    local service="$1"
+    local file="${2:-docker-compose.yml}"
+    
+    if [ -z "$service" ]; then
+        echo "Usage: compose_restart_service <service> [compose_file]"
+        return 1
+    fi
+    
+    echo "🔄 Restarting service: $service"
+    docker-compose -f "$file" restart "$service"
+    echo "✅ Service restarted: $service"
+}
+
+compose_scale_service() {
+    local service="$1"
+    local count="$2"
+    local file="${3:-docker-compose.yml}"
+    
+    if [ -z "$service" ] || [ -z "$count" ]; then
+        echo "Usage: compose_scale_service <service> <count> [compose_file]"
+        echo "Example: compose_scale_service web 3"
+        return 1
+    fi
+    
+    echo "📈 Scaling service $service to $count instances..."
+    docker-compose -f "$file" up -d --scale "$service=$count"
+    echo "✅ Service scaled: $service ($count instances)"
+}
+{{- end }}
+
+# Development helpers
+docker_run_temp() {
+    local image="$1"
+    shift
+    
+    if [ -z "$image" ]; then
+        echo "Usage: docker_run_temp <image> [command...]"
+        echo "Example: docker_run_temp alpine:latest sh"
+        return 1
+    fi
+    
+    echo "🏃 Running temporary container: $image"
+    docker run --rm -it "$image" "$@"
+}
+
+docker_debug_container() {
+    local container="$1"
+    
+    if [ -z "$container" ]; then
+        echo "Usage: docker_debug_container <container_name_or_id>"
+        return 1
+    fi
+    
+    echo "🔍 Debugging container: $container"
+    echo ""
+    echo "📋 Container Info:"
+    docker inspect "$container" --format '{{.Name}} | {{.State.Status}} | {{.RestartCount}} restarts'
+    echo ""
+    echo "🔧 Environment Variables:"
+    docker exec "$container" env | head -10
+    echo ""
+    echo "📁 Process List:"
+    docker exec "$container" ps aux 2>/dev/null || docker exec "$container" ps
+    echo ""
+    echo "💾 Disk Usage:"
+    docker exec "$container" df -h 2>/dev/null || echo "Unable to get disk usage"
+}
+
+# Security utilities
+docker_scan_image() {
+    local image="$1"
+    
+    if [ -z "$image" ]; then
+        echo "Usage: docker_scan_image <image_name>"
+        return 1
+    fi
+    
+    {{- if lookPath "docker" }}
+    if docker scan --help >/dev/null 2>&1; then
+        echo "🔒 Scanning image for vulnerabilities: $image"
+        docker scan "$image"
+    else
+        echo "ℹ️  Docker scan not available. Install Docker Desktop or use 'docker scout' if available."
+    fi
+    {{- end }}
+}
+
+# System cleanup
+docker_system_cleanup() {
+    echo "🧹 Performing comprehensive Docker cleanup..."
+    
+    # Stop all containers
+    local running=$(docker ps -q)
+    if [ -n "$running" ]; then
+        echo "⏹️  Stopping all running containers..."
+        docker stop $running
+    fi
+    
+    # Remove stopped containers
+    docker container prune -f
+    echo "✅ Removed stopped containers"
+    
+    # Remove unused images
+    docker image prune -a -f
+    echo "✅ Removed unused images"
+    
+    # Remove unused volumes
+    docker volume prune -f
+    echo "✅ Removed unused volumes"
+    
+    # Remove unused networks
+    docker network prune -f
+    echo "✅ Removed unused networks"
+    
+    # Remove build cache
+    docker builder prune -a -f
+    echo "✅ Removed build cache"
+    
+    echo ""
+    echo "📊 Cleanup Summary:"
+    docker system df
+    echo ""
+    echo "✅ Docker system cleanup complete"
+}
+
+# Monitoring and health checks
+docker_health_check() {
+    echo "🏥 Docker Health Check"
+    echo "====================="
+    echo ""
+    
+    # Docker daemon status
+    if docker info >/dev/null 2>&1; then
+        echo "✅ Docker daemon is running"
+    else
+        echo "❌ Docker daemon is not running"
+        return 1
+    fi
+    
+    # Container health status
+    echo ""
+    echo "🏥 Container Health Status:"
+    docker ps --format "table {{.Names}}\t{{.Status}}" | grep -E "(healthy|unhealthy|starting)"
+    
+    # Resource usage
+    echo ""
+    echo "📊 Resource Usage:"
+    docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}"
+    
+    # Disk usage
+    echo ""
+    echo "💾 Disk Usage:"
+    docker system df
+}
+
+# Registry utilities
+docker_push_image() {
+    local image="$1"
+    local registry="${2:-docker.io}"
+    
+    if [ -z "$image" ]; then
+        echo "Usage: docker_push_image <image> [registry]"
+        echo "Example: docker_push_image myapp:latest"
+        return 1
+    fi
+    
+    echo "📤 Pushing image to registry..."
+    
+    if [ "$registry" != "docker.io" ]; then
+        local tagged_image="$registry/$image"
+        docker tag "$image" "$tagged_image"
+        docker push "$tagged_image"
+    else
+        docker push "$image"
+    fi
+    
+    echo "✅ Image pushed successfully"
+}
+
+# Docker help function
+docker_help() {
+    echo "🐳 Docker Functions Available:"
+    echo ""
+    echo "ℹ️  Information:"
+    echo "  • docker_info            - System information and stats"
+    echo "  • docker_ps_all          - All containers (formatted)"
+    echo "  • docker_ps_running      - Running containers only"
+    echo "  • docker_images_info     - Image information"
+    echo "  • docker_health_check    - Health status overview"
+    echo ""
+    echo "🔧 Container Management:"
+    echo "  • docker_stop_all        - Stop all running containers"
+    echo "  • docker_start_all       - Start all stopped containers"
+    echo "  • docker_restart_all     - Restart all containers"
+    echo "  • docker_exec_bash       - Open bash/sh in container"
+    echo "  • docker_logs_follow     - Follow container logs"
+    echo ""
+    echo "🖼️  Image Management:"
+    echo "  • docker_build_optimized - Build with BuildKit"
+    echo "  • docker_cleanup_images  - Remove unused images"
+    echo "  • docker_scan_image      - Security scan (if available)"
+    echo "  • docker_push_image      - Push to registry"
+    echo ""
+    echo "💾 Volume Management:"
+    echo "  • docker_volumes_info    - List volumes"
+    echo "  • docker_backup_volume   - Backup volume to tar"
+    echo "  • docker_restore_volume  - Restore volume from tar"
+    echo "  • docker_cleanup_volumes - Remove unused volumes"
+    echo ""
+    echo "🌐 Network Management:"
+    echo "  • docker_networks_info   - List networks"
+    echo "  • docker_cleanup_networks - Remove unused networks"
+    echo ""
+    {{- if lookPath "docker-compose" }}
+    echo "🐙 Docker Compose:"
+    echo "  • compose_up_detached    - Start services in background"
+    echo "  • compose_down_cleanup   - Stop and cleanup services"
+    echo "  • compose_logs_all       - Follow all/specific service logs"
+    echo "  • compose_restart_service - Restart specific service"
+    echo "  • compose_scale_service  - Scale service instances"
+    echo ""
+    {{- end }}
+    echo "🧹 Cleanup & Maintenance:"
+    echo "  • docker_system_cleanup  - Complete system cleanup"
+    echo "  • docker_debug_container - Debug container issues"
+    echo ""
+    echo "🛠️  Development:"
+    echo "  • docker_run_temp        - Run temporary container"
+    echo "  • docker_stats_live      - Live resource monitoring"
+}
+
+{{- end }}

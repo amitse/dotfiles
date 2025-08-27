@@ -1,0 +1,225 @@
+#!/bin/bash
+# Install essential tools based on detected package manager and user profile
+# This script runs once before applying configurations
+
+set -e
+
+# Colors for output
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+log_info() {
+    echo -e "${BLUE}📦 $1${NC}"
+}
+
+log_success() {
+    echo -e "${GREEN}✅ $1${NC}"
+}
+
+log_warning() {
+    echo -e "${YELLOW}⚠️  $1${NC}"
+}
+
+log_error() {
+    echo -e "${RED}❌ $1${NC}"
+}
+
+# Detect package manager
+detect_package_manager() {
+    {{- $pm := include "package-manager" . }}
+    echo "{{ $pm }}"
+}
+
+# Install tools based on profile and package manager
+install_tools() {
+    local pm="$1"
+    local profile="{{ .profile }}"
+    
+    log_info "Installing tools for profile: $profile"
+    log_info "Using package manager: $pm"
+    
+    # Essential tools for all profiles
+    local essential_tools=(
+        {{- range .tools.essential }}
+        "{{ . }}"
+        {{- end }}
+    )
+    
+    # Optional tools for developer and power-user profiles
+    {{- if ne .profile "minimal" }}
+    local optional_tools=(
+        {{- range .tools.optional }}
+        "{{ . }}"
+        {{- end }}
+    )
+    {{- end }}
+    
+    # Install essential tools
+    for tool in "${essential_tools[@]}"; do
+        install_tool "$pm" "$tool" "essential"
+    done
+    
+    {{- if ne .profile "minimal" }}
+    # Install optional tools (non-fatal if they fail)
+    for tool in "${optional_tools[@]}"; do
+        install_tool "$pm" "$tool" "optional"
+    done
+    {{- end }}
+}
+
+# Install individual tool
+install_tool() {
+    local pm="$1"
+    local tool="$2"
+    local type="$3"
+    
+    # Check if tool is already available
+    if command -v "$tool" >/dev/null 2>&1; then
+        log_success "$tool already installed"
+        return 0
+    fi
+    
+    log_info "Installing $tool..."
+    
+    case "$pm" in
+        "apt")
+            if sudo apt update >/dev/null 2>&1 && sudo apt install -y "$tool" >/dev/null 2>&1; then
+                log_success "$tool installed via apt"
+            else
+                handle_install_failure "$tool" "$type"
+            fi
+            ;;
+        "yum")
+            if sudo yum install -y "$tool" >/dev/null 2>&1; then
+                log_success "$tool installed via yum"
+            else
+                handle_install_failure "$tool" "$type"
+            fi
+            ;;
+        "dnf")
+            if sudo dnf install -y "$tool" >/dev/null 2>&1; then
+                log_success "$tool installed via dnf"
+            else
+                handle_install_failure "$tool" "$type"
+            fi
+            ;;
+        "pacman")
+            if sudo pacman -S --noconfirm "$tool" >/dev/null 2>&1; then
+                log_success "$tool installed via pacman"
+            else
+                handle_install_failure "$tool" "$type"
+            fi
+            ;;
+        "brew")
+            if brew install "$tool" >/dev/null 2>&1; then
+                log_success "$tool installed via brew"
+            else
+                handle_install_failure "$tool" "$type"
+            fi
+            ;;
+        "winget")
+            # Map common tool names to winget package IDs
+            local winget_id="$tool"
+            case "$tool" in
+                "git") winget_id="Git.Git" ;;
+                "gh") winget_id="GitHub.cli" ;;
+                "fzf") winget_id="junegunn.fzf" ;;
+                "rg"|"ripgrep") winget_id="BurntSushi.ripgrep.MSVC" ;;
+                "bat") winget_id="sharkdp.bat" ;;
+                "zoxide") winget_id="ajeetdsouza.zoxide" ;;
+                "fd") winget_id="sharkdp.fd" ;;
+                "exa") winget_id="ogham.exa" ;;
+            esac
+            
+            if winget install "$winget_id" --silent >/dev/null 2>&1; then
+                log_success "$tool installed via winget"
+            else
+                handle_install_failure "$tool" "$type"
+            fi
+            ;;
+        "scoop")
+            if scoop install "$tool" >/dev/null 2>&1; then
+                log_success "$tool installed via scoop"
+            else
+                handle_install_failure "$tool" "$type"
+            fi
+            ;;
+        "choco")
+            if choco install "$tool" -y >/dev/null 2>&1; then
+                log_success "$tool installed via chocolatey"
+            else
+                handle_install_failure "$tool" "$type"
+            fi
+            ;;
+        "none")
+            log_warning "No package manager detected - cannot install $tool"
+            ;;
+        *)
+            log_error "Unknown package manager: $pm"
+            ;;
+    esac
+}
+
+# Handle installation failures
+handle_install_failure() {
+    local tool="$1"
+    local type="$2"
+    
+    if [ "$type" = "essential" ]; then
+        log_error "Failed to install essential tool: $tool"
+        log_info "Please install $tool manually"
+    else
+        log_warning "Failed to install optional tool: $tool (continuing...)"
+    fi
+}
+
+# Main execution
+main() {
+    log_info "Starting tool installation for {{ .profile }} profile..."
+    
+    local pm
+    pm=$(detect_package_manager)
+    
+    if [ "$pm" = "none" ]; then
+        log_warning "No package manager detected"
+        log_info "Please install tools manually:"
+        {{- range .tools.essential }}
+        log_info "  - {{ . }}"
+        {{- end }}
+        {{- if ne .profile "minimal" }}
+        {{- range .tools.optional }}
+        log_info "  - {{ . }} (optional)"
+        {{- end }}
+        {{- end }}
+        return 0
+    fi
+    
+    install_tools "$pm"
+    
+    log_success "Tool installation completed!"
+    
+    # Verify essential tools are available
+    log_info "Verifying essential tools..."
+    local missing_tools=()
+    
+    {{- range .tools.essential }}
+    if ! command -v "{{ . }}" >/dev/null 2>&1; then
+        missing_tools+=("{{ . }}")
+    fi
+    {{- end }}
+    
+    if [ ${#missing_tools[@]} -eq 0 ]; then
+        log_success "All essential tools are available"
+    else
+        log_warning "Some essential tools are missing: ${missing_tools[*]}"
+        log_info "Configurations will adapt to available tools"
+    fi
+}
+
+# Only run if not sourced
+if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
+    main "$@"
+fi

@@ -1,0 +1,422 @@
+# Windows Platform Configuration
+# Windows-specific settings, aliases, and functions
+
+{{- if eq .chezmoi.os "windows" }}
+
+# Windows-specific environment variables
+{{- if .paths.workspace }}
+$env:WORKSPACE = "{{ .paths.workspace }}"
+{{- end }}
+
+{{- if .paths.projects }}
+$env:PROJECTS = "{{ .paths.projects }}"
+{{- end }}
+
+# PowerShell profile enhancement detection
+if ($PSVersionTable.PSVersion.Major -ge 7) {
+    $env:POWERSHELL_VERSION = "pwsh"
+} else {
+    $env:POWERSHELL_VERSION = "powershell"
+}
+
+# Package management with multiple managers
+{{- if lookPath "choco" }}
+# Chocolatey shortcuts
+function chocoinstall { choco install $args }
+function chocoupgrade { choco upgrade $args }
+function chocolist { choco list --local-only }
+function chocosearch { choco search $args }
+function chocouninstall { choco uninstall $args }
+function chocoinfo { choco info $args }
+
+function choco-update-all {
+    Write-Host "🍫 Updating all Chocolatey packages..." -ForegroundColor Yellow
+    choco upgrade all -y
+    Write-Host "✅ Chocolatey packages updated" -ForegroundColor Green
+}
+{{- end }}
+
+{{- if lookPath "winget" }}
+# Winget shortcuts
+function wininstall { winget install $args }
+function winupgrade { winget upgrade $args }
+function winlist { winget list $args }
+function winsearch { winget search $args }
+function winuninstall { winget uninstall $args }
+function wininfo { winget show $args }
+
+function winget-update-all {
+    Write-Host "📦 Updating all Winget packages..." -ForegroundColor Yellow
+    winget upgrade --all
+    Write-Host "✅ Winget packages updated" -ForegroundColor Green
+}
+{{- end }}
+
+{{- if lookPath "scoop" }}
+# Scoop shortcuts
+function scoopinstall { scoop install $args }
+function scoopupdate { scoop update $args }
+function scooplist { scoop list }
+function scoopsearch { scoop search $args }
+function scoopuninstall { scoop uninstall $args }
+function scoopinfo { scoop info $args }
+
+function scoop-update-all {
+    Write-Host "🪣 Updating all Scoop packages..." -ForegroundColor Yellow
+    scoop update *
+    Write-Host "✅ Scoop packages updated" -ForegroundColor Green
+}
+{{- end }}
+
+# System information functions
+function Get-SystemInfo {
+    Write-Host "🖥️  Windows System Information" -ForegroundColor Cyan
+    Write-Host "============================" -ForegroundColor Cyan
+    
+    $os = Get-WmiObject -Class Win32_OperatingSystem
+    $cpu = Get-WmiObject -Class Win32_Processor
+    $memory = Get-WmiObject -Class Win32_ComputerSystem
+    
+    Write-Host "💻 OS: $($os.Caption) $($os.Version)" -ForegroundColor White
+    Write-Host "🧠 CPU: $($cpu.Name)" -ForegroundColor White
+    Write-Host "💾 Total RAM: $([math]::Round($memory.TotalPhysicalMemory / 1GB, 2)) GB" -ForegroundColor White
+    Write-Host "💿 Free Space: $((Get-WmiObject -Class Win32_LogicalDisk -Filter "DriveType=3" | ForEach-Object { [math]::Round($_.FreeSpace / 1GB, 2) }) -join ', ') GB" -ForegroundColor White
+}
+
+function Get-HardwareInfo {
+    Write-Host "🔧 Hardware Information" -ForegroundColor Cyan
+    Write-Host "======================" -ForegroundColor Cyan
+    
+    # CPU Information
+    $cpu = Get-WmiObject -Class Win32_Processor
+    Write-Host "🧠 CPU:" -ForegroundColor Yellow
+    Write-Host "   Name: $($cpu.Name)" -ForegroundColor White
+    Write-Host "   Cores: $($cpu.NumberOfCores)" -ForegroundColor White
+    Write-Host "   Threads: $($cpu.NumberOfLogicalProcessors)" -ForegroundColor White
+    Write-Host ""
+    
+    # Memory Information
+    $memory = Get-WmiObject -Class Win32_PhysicalMemory
+    $totalMemory = ($memory | Measure-Object -Property Capacity -Sum).Sum / 1GB
+    Write-Host "💾 Memory:" -ForegroundColor Yellow
+    Write-Host "   Total: $([math]::Round($totalMemory, 2)) GB" -ForegroundColor White
+    Write-Host "   Modules: $($memory.Count)" -ForegroundColor White
+    Write-Host ""
+    
+    # Graphics Information
+    $gpu = Get-WmiObject -Class Win32_VideoController | Where-Object { $_.Name -notmatch "Microsoft" }
+    if ($gpu) {
+        Write-Host "🎮 Graphics:" -ForegroundColor Yellow
+        $gpu | ForEach-Object { Write-Host "   $($_.Name)" -ForegroundColor White }
+    }
+}
+
+# File operations aliases
+function ll { Get-ChildItem -Force $args | Format-Table -AutoSize }
+function la { Get-ChildItem -Force -Hidden $args }
+function l { Get-ChildItem $args }
+
+# Enhanced directory navigation
+function .. { Set-Location .. }
+function ... { Set-Location ..\.. }
+function .... { Set-Location ..\..\.. }
+
+function mkdirp {
+    param([string]$Path)
+    New-Item -ItemType Directory -Path $Path -Force | Out-Null
+    Set-Location $Path
+}
+
+# Network utilities
+function Get-LocalIP {
+    Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -ne "127.0.0.1" } | 
+    Select-Object -ExpandProperty IPAddress
+}
+
+function Get-ExternalIP {
+    try {
+        $ip = Invoke-RestMethod -Uri "https://ifconfig.me/ip" -TimeoutSec 10
+        Write-Host "🌍 External IP: $ip" -ForegroundColor Green
+        return $ip
+    }
+    catch {
+        Write-Host "❌ Could not retrieve external IP" -ForegroundColor Red
+    }
+}
+
+function Test-Port {
+    param(
+        [string]$ComputerName = "localhost",
+        [int]$Port
+    )
+    
+    if (-not $Port) {
+        Write-Host "Usage: Test-Port [-ComputerName <host>] -Port <port>" -ForegroundColor Yellow
+        return
+    }
+    
+    $result = Test-NetConnection -ComputerName $ComputerName -Port $Port -WarningAction SilentlyContinue
+    if ($result.TcpTestSucceeded) {
+        Write-Host "✅ $ComputerName`:$Port is open" -ForegroundColor Green
+    } else {
+        Write-Host "❌ $ComputerName`:$Port is closed" -ForegroundColor Red
+    }
+}
+
+# Windows services management
+function Get-ServiceStatus {
+    param([string]$ServiceName)
+    
+    if ($ServiceName) {
+        Get-Service -Name $ServiceName | Format-Table -AutoSize
+    } else {
+        Get-Service | Where-Object { $_.Status -eq "Running" } | Format-Table -AutoSize
+    }
+}
+
+function Start-ServiceHelper {
+    param([string]$ServiceName)
+    
+    if (-not $ServiceName) {
+        Write-Host "Usage: Start-ServiceHelper -ServiceName <name>" -ForegroundColor Yellow
+        return
+    }
+    
+    Start-Service -Name $ServiceName
+    Write-Host "✅ Started service: $ServiceName" -ForegroundColor Green
+}
+
+function Stop-ServiceHelper {
+    param([string]$ServiceName)
+    
+    if (-not $ServiceName) {
+        Write-Host "Usage: Stop-ServiceHelper -ServiceName <name>" -ForegroundColor Yellow
+        return
+    }
+    
+    Stop-Service -Name $ServiceName
+    Write-Host "⏹️  Stopped service: $ServiceName" -ForegroundColor Green
+}
+
+# Process management
+function Get-ProcessByName {
+    param([string]$ProcessName)
+    
+    if ($ProcessName) {
+        Get-Process -Name "*$ProcessName*" | Format-Table -AutoSize
+    } else {
+        Get-Process | Sort-Object CPU -Descending | Select-Object -First 10 | Format-Table -AutoSize
+    }
+}
+
+function Stop-ProcessByName {
+    param([string]$ProcessName)
+    
+    if (-not $ProcessName) {
+        Write-Host "Usage: Stop-ProcessByName -ProcessName <name>" -ForegroundColor Yellow
+        return
+    }
+    
+    Get-Process -Name "*$ProcessName*" | Stop-Process -Force
+    Write-Host "✅ Stopped processes matching: $ProcessName" -ForegroundColor Green
+}
+
+# Windows-specific development tools
+function Install-DevTools {
+    Write-Host "🔧 Installing Windows development tools..." -ForegroundColor Yellow
+    
+    # Check for package managers and install essentials
+    {{- if lookPath "choco" }}
+    choco install git nodejs python vscode -y
+    {{- else if lookPath "winget" }}
+    winget install Git.Git
+    winget install OpenJS.NodeJS
+    winget install Python.Python.3
+    winget install Microsoft.VisualStudioCode
+    {{- else if lookPath "scoop" }}
+    scoop install git nodejs python
+    {{- else }}
+    Write-Host "❌ No package manager found. Please install Chocolatey, Winget, or Scoop first." -ForegroundColor Red
+    return
+    {{- end }}
+    
+    Write-Host "✅ Development tools installed" -ForegroundColor Green
+}
+
+# PowerShell profile management
+function Update-PowerShellProfile {
+    Write-Host "🔄 Updating PowerShell profile..." -ForegroundColor Yellow
+    
+    # Reload current profile
+    . $PROFILE
+    
+    Write-Host "✅ PowerShell profile reloaded" -ForegroundColor Green
+}
+
+function Edit-PowerShellProfile {
+    if (Test-Path $PROFILE) {
+        {{- if lookPath "code" }}
+        code $PROFILE
+        {{- else }}
+        notepad $PROFILE
+        {{- end }}
+    } else {
+        Write-Host "PowerShell profile not found at: $PROFILE" -ForegroundColor Red
+    }
+}
+
+# Windows Update management
+function Get-WindowsUpdateStatus {
+    if (Get-Module -ListAvailable -Name PSWindowsUpdate) {
+        Import-Module PSWindowsUpdate
+        Get-WUList
+    } else {
+        Write-Host "PSWindowsUpdate module not installed. Install with: Install-Module PSWindowsUpdate" -ForegroundColor Yellow
+    }
+}
+
+# Disk and storage management
+function Get-DiskInfo {
+    Write-Host "💿 Disk Information" -ForegroundColor Cyan
+    Write-Host "=================" -ForegroundColor Cyan
+    
+    Get-WmiObject -Class Win32_LogicalDisk | Where-Object { $_.DriveType -eq 3 } | ForEach-Object {
+        $freeSpace = [math]::Round($_.FreeSpace / 1GB, 2)
+        $totalSpace = [math]::Round($_.Size / 1GB, 2)
+        $usedSpace = $totalSpace - $freeSpace
+        $percentUsed = [math]::Round(($usedSpace / $totalSpace) * 100, 1)
+        
+        Write-Host "Drive $($_.DeviceID)" -ForegroundColor Yellow
+        Write-Host "  Total: $totalSpace GB" -ForegroundColor White
+        Write-Host "  Used:  $usedSpace GB ($percentUsed%)" -ForegroundColor White
+        Write-Host "  Free:  $freeSpace GB" -ForegroundColor White
+        Write-Host ""
+    }
+}
+
+function Clear-TempFiles {
+    Write-Host "🧹 Cleaning temporary files..." -ForegroundColor Yellow
+    
+    $tempPaths = @(
+        $env:TEMP,
+        "$env:LOCALAPPDATA\Temp",
+        "$env:WINDIR\Temp"
+    )
+    
+    foreach ($path in $tempPaths) {
+        if (Test-Path $path) {
+            Get-ChildItem -Path $path -Recurse -Force | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+            Write-Host "🧽 Cleaned: $path" -ForegroundColor Green
+        }
+    }
+    
+    # Clear recycle bin
+    Clear-RecycleBin -Force -ErrorAction SilentlyContinue
+    Write-Host "🗑️  Emptied Recycle Bin" -ForegroundColor Green
+    
+    Write-Host "✅ Temporary files cleanup complete" -ForegroundColor Green
+}
+
+# Registry helpers (use with caution)
+function Backup-Registry {
+    param([string]$BackupPath = "$env:USERPROFILE\Desktop\registry_backup_$(Get-Date -Format 'yyyyMMdd_HHmmss').reg")
+    
+    Write-Host "💾 Backing up registry..." -ForegroundColor Yellow
+    reg export HKEY_CURRENT_USER $BackupPath
+    Write-Host "✅ Registry backed up to: $BackupPath" -ForegroundColor Green
+}
+
+# Windows status dashboard
+function Get-WindowsStatus {
+    Write-Host "🪟 Windows System Status" -ForegroundColor Cyan
+    Write-Host "========================" -ForegroundColor Cyan
+    
+    # System uptime
+    $uptime = (Get-Date) - (Get-CimInstance -ClassName win32_operatingsystem).LastBootUpTime
+    Write-Host "⏰ Uptime: $($uptime.Days) days, $($uptime.Hours) hours, $($uptime.Minutes) minutes" -ForegroundColor White
+    
+    # Memory usage
+    $memory = Get-CimInstance -ClassName win32_operatingsystem
+    $totalMemory = [math]::Round($memory.TotalVisibleMemorySize / 1MB, 2)
+    $freeMemory = [math]::Round($memory.FreePhysicalMemory / 1MB, 2)
+    $usedMemory = $totalMemory - $freeMemory
+    $memoryPercent = [math]::Round(($usedMemory / $totalMemory) * 100, 1)
+    
+    Write-Host "💾 Memory: $usedMemory GB / $totalMemory GB ($memoryPercent%)" -ForegroundColor White
+    
+    # CPU usage (approximate)
+    $cpu = Get-Counter "\Processor(_Total)\% Processor Time" -SampleInterval 1 -MaxSamples 2
+    $cpuUsage = [math]::Round((($cpu.CounterSamples | Select-Object -Last 1).CookedValue), 1)
+    Write-Host "🧠 CPU Usage: $cpuUsage%" -ForegroundColor White
+    
+    # Disk usage for C: drive
+    $disk = Get-WmiObject -Class Win32_LogicalDisk -Filter "DeviceID='C:'"
+    if ($disk) {
+        $diskFree = [math]::Round($disk.FreeSpace / 1GB, 2)
+        $diskTotal = [math]::Round($disk.Size / 1GB, 2)
+        $diskUsed = $diskTotal - $diskFree
+        $diskPercent = [math]::Round(($diskUsed / $diskTotal) * 100, 1)
+        Write-Host "💿 C: Drive: $diskUsed GB / $diskTotal GB ($diskPercent%)" -ForegroundColor White
+    }
+    
+    # Running services count
+    $runningServices = (Get-Service | Where-Object { $_.Status -eq "Running" }).Count
+    $totalServices = (Get-Service).Count
+    Write-Host "⚙️  Services: $runningServices running / $totalServices total" -ForegroundColor White
+}
+
+# Windows help function
+function Get-WindowsHelp {
+    Write-Host "🪟 Windows Platform Functions:" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "📦 Package Management:" -ForegroundColor Yellow
+    {{- if lookPath "choco" }}
+    Write-Host "  • chocoinstall <pkg>     - Install with Chocolatey" -ForegroundColor White
+    Write-Host "  • choco-update-all       - Update all Chocolatey packages" -ForegroundColor White
+    {{- end }}
+    {{- if lookPath "winget" }}
+    Write-Host "  • wininstall <pkg>       - Install with Winget" -ForegroundColor White
+    Write-Host "  • winget-update-all      - Update all Winget packages" -ForegroundColor White
+    {{- end }}
+    {{- if lookPath "scoop" }}
+    Write-Host "  • scoopinstall <pkg>     - Install with Scoop" -ForegroundColor White
+    Write-Host "  • scoop-update-all       - Update all Scoop packages" -ForegroundColor White
+    {{- end }}
+    Write-Host ""
+    Write-Host "🔍 System Information:" -ForegroundColor Yellow
+    Write-Host "  • Get-SystemInfo         - System overview" -ForegroundColor White
+    Write-Host "  • Get-HardwareInfo       - Hardware details" -ForegroundColor White
+    Write-Host "  • Get-WindowsStatus      - Status dashboard" -ForegroundColor White
+    Write-Host "  • Get-DiskInfo           - Disk usage" -ForegroundColor White
+    Write-Host ""
+    Write-Host "🌐 Network:" -ForegroundColor Yellow
+    Write-Host "  • Get-LocalIP            - Show local IP addresses" -ForegroundColor White
+    Write-Host "  • Get-ExternalIP         - Show external IP" -ForegroundColor White
+    Write-Host "  • Test-Port <port>       - Check if port is open" -ForegroundColor White
+    Write-Host ""
+    Write-Host "⚙️  Services & Processes:" -ForegroundColor Yellow
+    Write-Host "  • Get-ServiceStatus      - List running services" -ForegroundColor White
+    Write-Host "  • Start-ServiceHelper    - Start a service" -ForegroundColor White
+    Write-Host "  • Get-ProcessByName      - Find processes" -ForegroundColor White
+    Write-Host ""
+    Write-Host "🧹 Maintenance:" -ForegroundColor Yellow
+    Write-Host "  • Clear-TempFiles        - Clean temporary files" -ForegroundColor White
+    Write-Host "  • Backup-Registry        - Backup registry" -ForegroundColor White
+    Write-Host ""
+    Write-Host "🔧 Development:" -ForegroundColor Yellow
+    Write-Host "  • Install-DevTools       - Install development tools" -ForegroundColor White
+    Write-Host "  • Edit-PowerShellProfile - Edit PowerShell profile" -ForegroundColor White
+}
+
+# Set aliases for common functions
+Set-Alias -Name sysinfo -Value Get-SystemInfo
+Set-Alias -Name hwinfo -Value Get-HardwareInfo
+Set-Alias -Name winstatus -Value Get-WindowsStatus
+Set-Alias -Name winhelp -Value Get-WindowsHelp
+Set-Alias -Name diskinfo -Value Get-DiskInfo
+Set-Alias -Name localip -Value Get-LocalIP
+Set-Alias -Name extip -Value Get-ExternalIP
+Set-Alias -Name portcheck -Value Test-Port
+Set-Alias -Name cleanup -Value Clear-TempFiles
+
+{{- end }}

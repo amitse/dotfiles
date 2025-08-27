@@ -1,0 +1,540 @@
+# Power User Profile Configuration
+# Maximum productivity with advanced features and comprehensive tooling
+
+{{- if eq .profile "power-user" }}
+
+# Advanced environment setup
+export EDITOR="${EDITOR:-{{ .editor.default }}}"
+export VISUAL="${VISUAL:-$EDITOR}"
+export PAGER="${PAGER:-bat}"
+export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+
+# Advanced aliases and shortcuts
+alias e='${EDITOR}'
+alias v='vim'
+alias reload='exec ${SHELL} -l'
+alias cls='clear'
+
+# Comprehensive file operations
+{{- if lookPath "exa" }}
+alias ls='exa --icons --group-directories-first'
+alias ll='exa -l --icons --git --group-directories-first'
+alias la='exa -la --icons --git --group-directories-first'
+alias tree='exa --tree --icons --group-directories-first'
+alias lt='exa --tree --level=2 --icons'
+alias llt='exa --tree --level=3 --icons -l'
+{{- else }}
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+{{- end }}
+
+{{- if lookPath "bat" }}
+alias cat='bat'
+alias less='bat'
+alias catp='bat --style=plain'
+alias batf='bat --style=full'
+{{- end }}
+
+{{- if lookPath "rg" }}
+alias grep='rg'
+alias rgi='rg -i'
+alias rgc='rg -C 3'
+alias rgw='rg -w'
+alias rgl='rg --files-with-matches'
+{{- end }}
+
+{{- if lookPath "fd" }}
+alias find='fd'
+alias findf='fd --type f'
+alias findd='fd --type d'
+alias findl='fd --type l'
+{{- end }}
+
+# Advanced system monitoring
+{{- if lookPath "bottom" }}
+alias top='btm'
+alias htop='btm'
+{{- else if lookPath "htop" }}
+alias top='htop'
+{{- end }}
+
+{{- if lookPath "dust" }}
+alias du='dust'
+alias dua='dust -d 1'
+{{- end }}
+
+{{- if lookPath "procs" }}
+alias ps='procs'
+{{- end }}
+
+# Comprehensive Git workflow
+{{- if lookPath "git" }}
+alias g='git'
+alias ga='git add'
+alias gaa='git add --all'
+alias gap='git add --patch'
+alias gc='git commit'
+alias gcm='git commit -m'
+alias gca='git commit --amend'
+alias gcan='git commit --amend --no-edit'
+alias gcf='git commit --fixup'
+alias gco='git checkout'
+alias gcb='git checkout -b'
+alias gcp='git cherry-pick'
+alias gd='git diff'
+alias gdc='git diff --cached'
+alias gdw='git diff --word-diff'
+alias gl='git log --oneline --graph --decorate'
+alias gla='git log --oneline --graph --decorate --all'
+alias glp='git log --patch'
+alias gp='git push'
+alias gpf='git push --force-with-lease'
+alias gpl='git pull'
+alias gpr='git pull --rebase'
+alias gs='git status'
+alias gss='git status -s'
+alias gb='git branch'
+alias gba='git branch -a'
+alias gbd='git branch -d'
+alias gbD='git branch -D'
+alias gm='git merge'
+alias gmn='git merge --no-ff'
+alias gr='git remote -v'
+alias gra='git remote add'
+alias gst='git stash'
+alias gsta='git stash apply'
+alias gstp='git stash pop'
+alias gstd='git stash drop'
+alias gstl='git stash list'
+alias grb='git rebase'
+alias grbi='git rebase -i'
+alias grba='git rebase --abort'
+alias grbc='git rebase --continue'
+
+# Advanced Git functions
+glog() {
+    git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit "$@"
+}
+
+glogf() {
+    git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --follow "$@"
+}
+
+gcount() {
+    git shortlog -sn "$@"
+}
+
+gclean() {
+    git branch --merged | grep -v "\*\|main\|master\|develop" | xargs -n 1 git branch -d
+}
+
+# Advanced git workflow
+gfeat() {
+    local branch_name="feature/$1"
+    git checkout -b "$branch_name"
+    git push -u origin "$branch_name"
+}
+
+gfix() {
+    local branch_name="fix/$1"
+    git checkout -b "$branch_name"
+    git push -u origin "$branch_name"
+}
+
+# Git commit with semantic versioning
+gconv() {
+    local type="$1"
+    shift
+    git commit -m "$type: $*"
+}
+
+gfeat_commit() { gconv "feat" "$@"; }
+gfix_commit() { gconv "fix" "$@"; }
+gdocs_commit() { gconv "docs" "$@"; }
+gstyle_commit() { gconv "style" "$@"; }
+grefactor_commit() { gconv "refactor" "$@"; }
+gtest_commit() { gconv "test" "$@"; }
+gchore_commit() { gconv "chore" "$@"; }
+{{- end }}
+
+# Git UI tools
+{{- if lookPath "lazygit" }}
+alias lg='lazygit'
+{{- end }}
+
+{{- if lookPath "gitui" }}
+alias gu='gitui'
+{{- end }}
+
+# GitHub CLI power features
+{{- if lookPath "gh" }}
+alias prs='gh pr list'
+alias pr='gh pr view'
+alias prc='gh pr create'
+alias prco='gh pr checkout'
+alias prm='gh pr merge'
+alias issues='gh issue list'
+alias issue='gh issue view'
+alias ic='gh issue create'
+alias repos='gh repo list'
+alias rc='gh repo create'
+alias gists='gh gist list'
+alias gc_gist='gh gist create'
+
+# Advanced GitHub workflows
+gh_clone_all() {
+    local org="$1"
+    if [ -z "$org" ]; then
+        echo "Usage: gh_clone_all <organization>"
+        return 1
+    fi
+    gh repo list "$org" --limit 100 | cut -f1 | xargs -I {} gh repo clone {}
+}
+{{- end }}
+
+# Docker power user features
+{{- if lookPath "docker" }}
+alias d='docker'
+alias dc='docker-compose'
+alias dps='docker ps'
+alias dpsa='docker ps -a'
+alias di='docker images'
+alias dv='docker volume ls'
+alias dn='docker network ls'
+alias drm='docker rm'
+alias drmi='docker rmi'
+alias dex='docker exec -it'
+alias dlogs='docker logs'
+alias dlogf='docker logs -f'
+alias dclean='docker system prune -f'
+alias dcleanall='docker system prune -a -f'
+alias dstop='docker stop $(docker ps -q)'
+alias dkill='docker kill $(docker ps -q)'
+
+# Docker development workflows
+drun() {
+    docker run -it --rm "$@"
+}
+
+dbuild() {
+    local tag="${1:-latest}"
+    docker build -t "$tag" .
+}
+
+# Docker-compose shortcuts
+dcup() {
+    docker-compose up -d "$@"
+}
+
+dcdown() {
+    docker-compose down "$@"
+}
+
+dclogs() {
+    docker-compose logs -f "$@"
+}
+{{- end }}
+
+# Kubernetes power features
+{{- if lookPath "kubectl" }}
+alias k='kubectl'
+alias ka='kubectl apply -f'
+alias kd='kubectl delete'
+alias kg='kubectl get'
+alias kgp='kubectl get pods'
+alias kgs='kubectl get services'
+alias kgd='kubectl get deployments'
+alias kgi='kubectl get ingress'
+alias kgn='kubectl get nodes'
+alias kgns='kubectl get namespaces'
+alias kdes='kubectl describe'
+alias klogs='kubectl logs'
+alias kex='kubectl exec -it'
+alias kport='kubectl port-forward'
+
+# Kubernetes context management
+kctx() {
+    kubectl config get-contexts
+}
+
+kns() {
+    kubectl config set-context --current --namespace="$1"
+}
+{{- end }}
+
+# Development workflows
+{{- if lookPath "npm" }}
+alias ni='npm install'
+alias nic='npm install --clean'
+alias ns='npm start'
+alias nt='npm test'
+alias ntw='npm test -- --watch'
+alias nb='npm run build'
+alias nrd='npm run dev'
+alias nw='npm run watch'
+alias nlint='npm run lint'
+alias nfix='npm run lint:fix'
+{{- end }}
+
+{{- if lookPath "yarn" }}
+alias y='yarn'
+alias ya='yarn add'
+alias yad='yarn add --dev'
+alias ys='yarn start'
+alias yt='yarn test'
+alias ytw='yarn test --watch'
+alias yb='yarn build'
+alias yd='yarn dev'
+alias yl='yarn lint'
+alias yf='yarn lint:fix'
+{{- end }}
+
+# Python power user
+{{- if lookPath "python" }}
+alias py='python'
+alias pip='python -m pip'
+alias pipi='python -m pip install'
+alias pipu='python -m pip install --upgrade'
+alias venv='python -m venv'
+alias activate='source venv/bin/activate'
+alias freeze='pip freeze > requirements.txt'
+{{- else if lookPath "python3" }}
+alias py='python3'
+alias pip='python3 -m pip'
+alias pipi='python3 -m pip install'
+alias pipu='python3 -m pip install --upgrade'
+alias venv='python3 -m venv'
+alias activate='source venv/bin/activate'
+alias freeze='pip freeze > requirements.txt'
+{{- end }}
+
+# Advanced tmux workflows
+{{- if lookPath "tmux" }}
+alias t='tmux'
+alias ta='tmux attach'
+alias tl='tmux list-sessions'
+alias tn='tmux new-session -s'
+alias tk='tmux kill-session -t'
+alias tka='tmux kill-server'
+
+# Advanced tmux session management
+tmux_dev() {
+    local session_name="${1:-dev}"
+    local project_dir="${2:-$(pwd)}"
+    
+    if tmux has-session -t "$session_name" 2>/dev/null; then
+        tmux attach-session -t "$session_name"
+        return
+    fi
+    
+    cd "$project_dir"
+    
+    # Create session with multiple windows
+    tmux new-session -d -s "$session_name" -c "$project_dir"
+    
+    # Window 1: Editor
+    tmux rename-window -t "$session_name:1" "editor"
+    tmux send-keys -t "$session_name:1" "${EDITOR} ." Enter
+    
+    # Window 2: Server
+    tmux new-window -t "$session_name" -n "server" -c "$project_dir"
+    
+    # Window 3: Tests
+    tmux new-window -t "$session_name" -n "tests" -c "$project_dir"
+    
+    # Window 4: Git
+    tmux new-window -t "$session_name" -n "git" -c "$project_dir"
+    {{- if lookPath "lazygit" }}
+    tmux send-keys -t "$session_name:git" "lazygit" Enter
+    {{- end }}
+    
+    # Attach to session
+    tmux select-window -t "$session_name:1"
+    tmux attach-session -t "$session_name"
+}
+{{- end }}
+
+# File watching and automation
+{{- if lookPath "entr" }}
+# Watch and auto-reload
+watch_reload() {
+    find . -name "*.$1" | entr -r "$2"
+}
+
+# Watch tests
+watchtest() {
+    find . -name "*.py" -o -name "*.js" -o -name "*.ts" | entr -c "${1:-npm test}"
+}
+
+# Watch build
+watchbuild() {
+    find . -name "*.js" -o -name "*.ts" -o -name "*.scss" -o -name "*.css" | entr -c "${1:-npm run build}"
+}
+
+# Watch lint
+watchlint() {
+    find . -name "*.js" -o -name "*.ts" -o -name "*.py" | entr -c "${1:-npm run lint}"
+}
+{{- end }}
+
+# Network and system utilities
+{{- if not (eq .chezmoi.os "windows") }}
+alias ports='netstat -tuln'
+alias listening='lsof -i'
+alias connections='netstat -an'
+
+# System monitoring shortcuts
+sysmon() {
+    echo "🖥️  System Monitoring"
+    echo "=================="
+    echo "💾 Memory Usage:"
+    free -h 2>/dev/null || echo "Memory info not available"
+    echo ""
+    echo "💿 Disk Usage:"
+    df -h 2>/dev/null || echo "Disk info not available"
+    echo ""
+    echo "🔌 Network Connections:"
+    netstat -an | grep ESTABLISHED | wc -l | xargs echo "Active connections:"
+    echo ""
+    echo "⚡ Load Average:"
+    uptime
+}
+{{- end }}
+
+# Advanced project management
+mkproj() {
+    local name="$1"
+    local template="${2:-basic}"
+    
+    if [ -z "$name" ]; then
+        echo "Usage: mkproj <project-name> [template]"
+        echo "Templates: basic, node, python, rust, go"
+        return 1
+    fi
+    
+    local project_dir="{{ .paths.workspace }}/$name"
+    mkdir -p "$project_dir"
+    cd "$project_dir"
+    
+    # Initialize git
+    {{- if lookPath "git" }}
+    git init
+    echo "# $name" > README.md
+    {{- end }}
+    
+    case "$template" in
+        "node")
+            {{- if lookPath "npm" }}
+            npm init -y
+            echo "node_modules/" > .gitignore
+            echo ".env" >> .gitignore
+            echo "dist/" >> .gitignore
+            {{- end }}
+            ;;
+        "python")
+            echo "__pycache__/" > .gitignore
+            echo "*.pyc" >> .gitignore
+            echo ".env" >> .gitignore
+            echo "venv/" >> .gitignore
+            {{- if lookPath "python" }}
+            python -m venv venv
+            {{- end }}
+            ;;
+        "rust")
+            {{- if lookPath "cargo" }}
+            cargo init
+            {{- end }}
+            ;;
+        "go")
+            {{- if lookPath "go" }}
+            go mod init "$name"
+            {{- end }}
+            ;;
+        *)
+            echo ".DS_Store" > .gitignore
+            echo ".env" >> .gitignore
+            ;;
+    esac
+    
+    {{- if lookPath "git" }}
+    git add .
+    git commit -m "Initial commit"
+    {{- end }}
+    
+    echo "📁 Created $template project: $name"
+    
+    # Start development session if requested
+    if [ "$3" = "--dev" ]; then
+        tmux_dev "$name" "$project_dir"
+    fi
+}
+
+# Advanced search and navigation
+{{- if lookPath "fzf" }}
+# Project switcher with preview
+proj() {
+    local projects_dir="{{ .paths.workspace }}"
+    if [ ! -d "$projects_dir" ]; then
+        echo "Projects directory not found: $projects_dir"
+        return 1
+    fi
+    
+    local project=$(find "$projects_dir" -maxdepth 2 -type d -name .git | \
+        sed 's|/.git||' | \
+        fzf --preview 'ls -la {} && echo "" && git -C {} log --oneline -10 2>/dev/null')
+    
+    if [ -n "$project" ]; then
+        cd "$project"
+        tmux_dev "$(basename "$project")" "$project"
+    fi
+}
+
+# Config file editor
+conf() {
+    local config=$(find ~/.config ~/.local/share/chezmoi -type f | fzf --preview 'bat --color=always {}')
+    [ -n "$config" ] && ${EDITOR} "$config"
+}
+{{- end }}
+
+# Power user help system
+power_help() {
+    echo "⚡ Power User Profile Active"
+    echo "Advanced features available:"
+    echo ""
+    echo "🗂️  File Operations:"
+    echo "  • Enhanced ls/tree with icons and git status"
+    echo "  • Syntax highlighting with bat"
+    echo "  • Ultra-fast search with ripgrep"
+    echo "  • Modern find with fd"
+    echo ""
+    echo "🔧 Git Workflow:"
+    echo "  • Comprehensive git aliases (50+ shortcuts)"
+    echo "  • Semantic commit helpers (gfeat_commit, gfix_commit)"
+    echo "  • Branch management (gfeat, gfix, gclean)"
+    {{- if lookPath "lazygit" }}
+    echo "  • Git TUI with lazygit (lg)"
+    {{- end }}
+    echo ""
+    echo "🚀 Development:"
+    echo "  • Advanced project creation (mkproj <name> <template>)"
+    echo "  • Multi-window tmux sessions (tmux_dev)"
+    echo "  • File watching (watchtest, watchbuild, watchlint)"
+    {{- if lookPath "docker" }}
+    echo "  • Docker power commands (drun, dbuild, dcup)"
+    {{- end }}
+    echo ""
+    echo "🔍 Navigation:"
+    echo "  • Project switcher with preview (proj)"
+    echo "  • Config file editor (conf)"
+    echo "  • Fuzzy everything (Ctrl+R, Ctrl+T)"
+    echo ""
+    echo "📊 Monitoring:"
+    echo "  • System monitoring (sysmon)"
+    echo "  • Process management with modern tools"
+    echo "  • Network utilities"
+    echo ""
+    echo "💡 Run 'power_help' anytime to see this message"
+}
+
+{{- end }}

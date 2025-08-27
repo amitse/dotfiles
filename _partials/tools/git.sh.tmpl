@@ -1,0 +1,474 @@
+# Git Configuration and Utilities
+# Advanced Git configuration, aliases, and workflow functions
+
+{{- if lookPath "git" }}
+
+# Git global configuration helpers
+git_setup_global() {
+    echo "🔧 Setting up Git global configuration..."
+    
+    # Core settings
+    git config --global init.defaultBranch main
+    git config --global pull.rebase false
+    git config --global push.default simple
+    git config --global core.autocrlf input
+    git config --global core.safecrlf warn
+    git config --global core.editor "${EDITOR}"
+    
+    # Better diff and merge tools
+    {{- if lookPath "code" }}
+    git config --global merge.tool vscode
+    git config --global mergetool.vscode.cmd 'code --wait $MERGED'
+    git config --global diff.tool vscode
+    git config --global difftool.vscode.cmd 'code --wait --diff $LOCAL $REMOTE'
+    {{- else if lookPath "vim" }}
+    git config --global merge.tool vimdiff
+    git config --global diff.tool vimdiff
+    {{- end }}
+    
+    # Performance settings
+    git config --global core.preloadindex true
+    git config --global core.fscache true
+    git config --global gc.auto 256
+    
+    # Security settings
+    git config --global transfer.fsckobjects true
+    git config --global fetch.fsckobjects true
+    git config --global receive.fsckObjects true
+    
+    echo "✅ Git global configuration complete"
+}
+
+# Git aliases setup
+git_setup_aliases() {
+    echo "🔗 Setting up Git aliases..."
+    
+    # Basic shortcuts
+    git config --global alias.co checkout
+    git config --global alias.br branch
+    git config --global alias.ci commit
+    git config --global alias.st status
+    git config --global alias.unstage 'reset HEAD --'
+    git config --global alias.last 'log -1 HEAD'
+    git config --global alias.visual '!gitk'
+    
+    # Enhanced status and log
+    git config --global alias.s 'status --short'
+    git config --global alias.ss 'status --short --branch'
+    git config --global alias.lg "log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
+    git config --global alias.lga "log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --all"
+    git config --global alias.lgp "log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --patch"
+    
+    # Diff and show utilities
+    git config --global alias.d 'diff'
+    git config --global alias.ds 'diff --staged'
+    git config --global alias.dw 'diff --word-diff'
+    git config --global alias.dc 'diff --cached'
+    git config --global alias.dt 'difftool'
+    git config --global alias.mt 'mergetool'
+    
+    # Branch management
+    git config --global alias.ba 'branch -a'
+    git config --global alias.bd 'branch -d'
+    git config --global alias.bdd 'branch -D'
+    git config --global alias.recent 'branch --sort=-committerdate'
+    git config --global alias.merged 'branch --merged'
+    git config --global alias.unmerged 'branch --no-merged'
+    
+    # Remote operations
+    git config --global alias.rb 'rebase'
+    git config --global alias.rbi 'rebase --interactive'
+    git config --global alias.rba 'rebase --abort'
+    git config --global alias.rbc 'rebase --continue'
+    git config --global alias.rbs 'rebase --skip'
+    
+    # Stash operations
+    git config --global alias.sl 'stash list'
+    git config --global alias.sa 'stash apply'
+    git config --global alias.ss 'stash save'
+    git config --global alias.sp 'stash pop'
+    git config --global alias.sd 'stash drop'
+    git config --global alias.sc 'stash clear'
+    
+    # Advanced workflows
+    git config --global alias.pushup 'push --set-upstream origin HEAD'
+    git config --global alias.pushnew 'push -u origin HEAD'
+    git config --global alias.forcepush 'push --force-with-lease'
+    git config --global alias.cleanup 'branch --merged | grep -v "\*\|main\|master\|develop" | xargs -n 1 git branch -d'
+    git config --global alias.contributors 'shortlog --summary --numbered --all --no-merges'
+    git config --global alias.changelog 'log --oneline --no-merges'
+    
+    # Find and search
+    git config --global alias.find 'log --all --full-history -- '
+    git config --global alias.grep 'grep --break --heading --line-number'
+    git config --global alias.search 'log --all --grep'
+    
+    # Undo operations
+    git config --global alias.undo 'reset --soft HEAD~1'
+    git config --global alias.undohard 'reset --hard HEAD~1'
+    git config --global alias.amend 'commit --amend --no-edit'
+    git config --global alias.amendf 'commit --amend'
+    
+    echo "✅ Git aliases configured"
+}
+
+# Git workflow functions
+git_feature() {
+    local branch_name="$1"
+    local base_branch="${2:-main}"
+    
+    if [ -z "$branch_name" ]; then
+        echo "Usage: git_feature <branch-name> [base-branch]"
+        echo "Example: git_feature user-auth main"
+        return 1
+    fi
+    
+    local feature_branch="feature/$branch_name"
+    
+    # Ensure we're on the base branch and it's up to date
+    git checkout "$base_branch"
+    git pull origin "$base_branch"
+    
+    # Create and checkout feature branch
+    git checkout -b "$feature_branch"
+    git push -u origin "$feature_branch"
+    
+    echo "✅ Created feature branch: $feature_branch"
+    echo "💡 When ready to merge: git_merge_feature $branch_name"
+}
+
+git_hotfix() {
+    local branch_name="$1"
+    local base_branch="${2:-main}"
+    
+    if [ -z "$branch_name" ]; then
+        echo "Usage: git_hotfix <branch-name> [base-branch]"
+        echo "Example: git_hotfix critical-bug main"
+        return 1
+    fi
+    
+    local hotfix_branch="hotfix/$branch_name"
+    
+    # Ensure we're on the base branch and it's up to date
+    git checkout "$base_branch"
+    git pull origin "$base_branch"
+    
+    # Create and checkout hotfix branch
+    git checkout -b "$hotfix_branch"
+    git push -u origin "$hotfix_branch"
+    
+    echo "✅ Created hotfix branch: $hotfix_branch"
+    echo "💡 When ready to merge: git_merge_hotfix $branch_name"
+}
+
+git_merge_feature() {
+    local branch_name="$1"
+    local target_branch="${2:-main}"
+    
+    if [ -z "$branch_name" ]; then
+        echo "Usage: git_merge_feature <branch-name> [target-branch]"
+        return 1
+    fi
+    
+    local feature_branch="feature/$branch_name"
+    
+    # Switch to target branch and update
+    git checkout "$target_branch"
+    git pull origin "$target_branch"
+    
+    # Merge feature branch
+    git merge --no-ff "$feature_branch" -m "Merge feature: $branch_name"
+    
+    # Push changes
+    git push origin "$target_branch"
+    
+    # Clean up feature branch
+    git branch -d "$feature_branch"
+    git push origin --delete "$feature_branch"
+    
+    echo "✅ Merged and cleaned up feature: $branch_name"
+}
+
+git_squash_commits() {
+    local commit_count="${1:-2}"
+    
+    if ! [[ "$commit_count" =~ ^[0-9]+$ ]]; then
+        echo "Usage: git_squash_commits <number-of-commits>"
+        echo "Example: git_squash_commits 3"
+        return 1
+    fi
+    
+    git rebase -i "HEAD~$commit_count"
+}
+
+# Git information and analysis
+git_repo_info() {
+    echo "📊 Git Repository Information"
+    echo "============================"
+    echo ""
+    
+    # Basic repo info
+    echo "📍 Repository:"
+    echo "  Path: $(git rev-parse --show-toplevel)"
+    echo "  Branch: $(git branch --show-current)"
+    echo "  Remote: $(git remote get-url origin 2>/dev/null || echo "No remote")"
+    echo ""
+    
+    # Commit statistics
+    echo "📈 Commit Statistics:"
+    echo "  Total commits: $(git rev-list --all --count)"
+    echo "  Commits on current branch: $(git rev-list --count HEAD)"
+    echo "  Last commit: $(git log -1 --format="%ar")"
+    echo ""
+    
+    # Branch information
+    echo "🌿 Branches:"
+    echo "  Local branches: $(git branch | wc -l)"
+    echo "  Remote branches: $(git branch -r | wc -l)"
+    echo "  Merged branches: $(git branch --merged | grep -v '\*' | wc -l)"
+    echo ""
+    
+    # File statistics
+    echo "📁 Repository Size:"
+    local repo_size=$(git count-objects -vH | grep size-pack | awk '{print $2}')
+    echo "  Repository size: ${repo_size:-"Unknown"}"
+    local file_count=$(git ls-files | wc -l)
+    echo "  Tracked files: $file_count"
+    echo ""
+    
+    # Recent activity
+    echo "⏰ Recent Activity:"
+    git log --oneline -5 | sed 's/^/  /'
+}
+
+git_contributors() {
+    echo "👥 Repository Contributors"
+    echo "========================="
+    git shortlog -sn --all --no-merges
+}
+
+git_file_blame() {
+    local file="$1"
+    local line_start="${2:-1}"
+    local line_end="${3:-}"
+    
+    if [ -z "$file" ]; then
+        echo "Usage: git_file_blame <file> [line_start] [line_end]"
+        return 1
+    fi
+    
+    if [ -n "$line_end" ]; then
+        git blame -L "$line_start,$line_end" "$file"
+    else
+        git blame "$file"
+    fi
+}
+
+git_search_commits() {
+    local search_term="$1"
+    
+    if [ -z "$search_term" ]; then
+        echo "Usage: git_search_commits <search-term>"
+        echo "Example: git_search_commits 'bug fix'"
+        return 1
+    fi
+    
+    git log --all --grep="$search_term" --oneline
+}
+
+git_search_code() {
+    local search_term="$1"
+    
+    if [ -z "$search_term" ]; then
+        echo "Usage: git_search_code <search-term>"
+        echo "Example: git_search_code 'function getName'"
+        return 1
+    fi
+    
+    git log -p --all -S "$search_term"
+}
+
+# Git maintenance and cleanup
+git_cleanup() {
+    echo "🧹 Cleaning up Git repository..."
+    
+    # Prune remote tracking branches
+    git remote prune origin
+    echo "✅ Pruned remote tracking branches"
+    
+    # Remove merged branches
+    local merged_branches=$(git branch --merged | grep -v '\*\|main\|master\|develop' | tr -d ' ')
+    if [ -n "$merged_branches" ]; then
+        echo "$merged_branches" | xargs -n 1 git branch -d
+        echo "✅ Removed merged branches: $merged_branches"
+    else
+        echo "ℹ️  No merged branches to remove"
+    fi
+    
+    # Garbage collection
+    git gc --prune=now
+    echo "✅ Performed garbage collection"
+    
+    # Remove untracked files (with confirmation)
+    if [ "$(git clean -n | wc -l)" -gt 0 ]; then
+        echo "🗑️  Untracked files found:"
+        git clean -n
+        echo ""
+        read -p "Remove untracked files? (y/N): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            git clean -fd
+            echo "✅ Removed untracked files"
+        else
+            echo "ℹ️  Skipped removing untracked files"
+        fi
+    else
+        echo "ℹ️  No untracked files to remove"
+    fi
+    
+    echo "✅ Git cleanup complete"
+}
+
+# Git commit helpers with conventional commits
+git_commit_feat() {
+    local message="$1"
+    local scope="$2"
+    
+    if [ -z "$message" ]; then
+        echo "Usage: git_commit_feat <message> [scope]"
+        echo "Example: git_commit_feat 'add user authentication' auth"
+        return 1
+    fi
+    
+    if [ -n "$scope" ]; then
+        git commit -m "feat($scope): $message"
+    else
+        git commit -m "feat: $message"
+    fi
+}
+
+git_commit_fix() {
+    local message="$1"
+    local scope="$2"
+    
+    if [ -z "$message" ]; then
+        echo "Usage: git_commit_fix <message> [scope]"
+        echo "Example: git_commit_fix 'resolve login issue' auth"
+        return 1
+    fi
+    
+    if [ -n "$scope" ]; then
+        git commit -m "fix($scope): $message"
+    else
+        git commit -m "fix: $message"
+    fi
+}
+
+git_commit_docs() {
+    local message="$1"
+    git commit -m "docs: $message"
+}
+
+git_commit_style() {
+    local message="$1"
+    git commit -m "style: $message"
+}
+
+git_commit_refactor() {
+    local message="$1"
+    git commit -m "refactor: $message"
+}
+
+git_commit_test() {
+    local message="$1"
+    git commit -m "test: $message"
+}
+
+git_commit_chore() {
+    local message="$1"
+    git commit -m "chore: $message"
+}
+
+# Git diff utilities
+git_diff_summary() {
+    echo "📊 Git Diff Summary"
+    echo "=================="
+    git diff --stat
+}
+
+git_show_conflicts() {
+    echo "⚠️  Merge Conflicts"
+    echo "=================="
+    git diff --name-only --diff-filter=U
+}
+
+# Git hook setup
+git_setup_hooks() {
+    local hooks_dir=".git/hooks"
+    
+    if [ ! -d "$hooks_dir" ]; then
+        echo "❌ Not in a Git repository"
+        return 1
+    fi
+    
+    echo "🪝 Setting up Git hooks..."
+    
+    # Pre-commit hook for conventional commits
+    cat > "$hooks_dir/prepare-commit-msg" << 'EOF'
+#!/bin/sh
+# Prepare commit message hook for conventional commits
+
+commit_regex='^(feat|fix|docs|style|refactor|test|chore)(\(.+\))?: .{1,50}'
+
+if ! grep -qE "$commit_regex" "$1"; then
+    echo "Commit message format:"
+    echo "  feat: add new feature"
+    echo "  fix: resolve bug"
+    echo "  docs: update documentation"
+    echo "  style: formatting changes"
+    echo "  refactor: code restructuring"
+    echo "  test: add tests"
+    echo "  chore: maintenance tasks"
+fi
+EOF
+    
+    chmod +x "$hooks_dir/prepare-commit-msg"
+    echo "✅ Git hooks configured"
+}
+
+# Git help function
+git_help() {
+    echo "🔧 Git Functions Available:"
+    echo ""
+    echo "⚙️  Setup & Configuration:"
+    echo "  • git_setup_global       - Configure Git globally"
+    echo "  • git_setup_aliases      - Install useful Git aliases"
+    echo "  • git_setup_hooks        - Set up Git hooks"
+    echo ""
+    echo "🌿 Workflow:"
+    echo "  • git_feature <name>     - Create feature branch"
+    echo "  • git_hotfix <name>      - Create hotfix branch"
+    echo "  • git_merge_feature      - Merge and cleanup feature"
+    echo "  • git_squash_commits     - Interactive rebase to squash"
+    echo ""
+    echo "📊 Information:"
+    echo "  • git_repo_info          - Repository statistics"
+    echo "  • git_contributors       - Show contributors"
+    echo "  • git_file_blame         - Detailed blame for file"
+    echo ""
+    echo "🔍 Search:"
+    echo "  • git_search_commits     - Search commit messages"
+    echo "  • git_search_code        - Search code changes"
+    echo ""
+    echo "🧹 Maintenance:"
+    echo "  • git_cleanup            - Clean up repository"
+    echo "  • git_show_conflicts     - Show merge conflicts"
+    echo ""
+    echo "📝 Conventional Commits:"
+    echo "  • git_commit_feat        - feat: new feature"
+    echo "  • git_commit_fix         - fix: bug fix"
+    echo "  • git_commit_docs        - docs: documentation"
+    echo "  • git_commit_refactor    - refactor: code change"
+}
+
+{{- end }}

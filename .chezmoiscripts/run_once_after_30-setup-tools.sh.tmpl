@@ -1,0 +1,379 @@
+#!/bin/bash
+# Setup Additional Development Tools
+# This script runs after essential tools are installed to add optional development tools
+
+set -e
+
+echo "🔧 Setting up additional development tools..."
+
+# Color functions for output
+red() { echo -e "\033[31m$1\033[0m"; }
+green() { echo -e "\033[32m$1\033[0m"; }
+yellow() { echo -e "\033[33m$1\033[0m"; }
+blue() { echo -e "\033[34m$1\033[0m"; }
+
+# Check if running in CI/automated environment
+is_automated() {
+    [[ "${CI:-false}" == "true" ]] || [[ "${AUTOMATED:-false}" == "true" ]] || [[ -n "${GITHUB_ACTIONS}" ]]
+}
+
+# Prompt for user input (skip in automated environments)
+prompt_user() {
+    local prompt="$1"
+    local default="${2:-n}"
+    
+    if is_automated; then
+        echo "$default"
+        return 0
+    fi
+    
+    echo -n "$prompt (y/N): "
+    read -r response
+    echo "${response:-$default}"
+}
+
+# Install Node.js tools
+setup_nodejs_tools() {
+    if ! command -v node >/dev/null 2>&1; then
+        yellow "⚠️  Node.js not found, skipping Node.js tools"
+        return 0
+    fi
+    
+    blue "📦 Setting up Node.js development tools..."
+    
+    local npm_packages=(
+        "eslint"           # JavaScript linting
+        "prettier"         # Code formatting
+        "typescript"       # TypeScript compiler
+        "ts-node"          # TypeScript execution
+        "nodemon"          # Development server
+        "http-server"      # Static file server
+        "json-server"      # Mock REST API
+        "npm-check-updates" # Check for package updates
+        "serve"            # Production file server
+    )
+    
+    {{- if eq .profile "developer" "power-user" }}
+    # Additional tools for developer/power-user profiles
+    npm_packages+=(
+        "webpack-cli"      # Module bundler
+        "create-react-app" # React project generator
+        "vue-cli"          # Vue.js project generator
+        "@angular/cli"     # Angular CLI
+    )
+    {{- end }}
+    
+    for package in "${npm_packages[@]}"; do
+        if ! npm list -g "$package" >/dev/null 2>&1; then
+            echo "  Installing $package..."
+            npm install -g "$package" || yellow "  ⚠️  Failed to install $package"
+        else
+            echo "  ✅ $package already installed"
+        fi
+    done
+}
+
+# Install Python tools
+setup_python_tools() {
+    local python_cmd=""
+    
+    # Determine Python command
+    if command -v python3 >/dev/null 2>&1; then
+        python_cmd="python3"
+    elif command -v python >/dev/null 2>&1; then
+        python_cmd="python"
+    else
+        yellow "⚠️  Python not found, skipping Python tools"
+        return 0
+    fi
+    
+    blue "🐍 Setting up Python development tools..."
+    
+    local pip_packages=(
+        "pip"              # Package installer
+        "setuptools"       # Build tools
+        "wheel"            # Wheel format support
+        "virtualenv"       # Virtual environments
+        "black"            # Code formatting
+        "flake8"           # Linting
+        "pytest"           # Testing framework
+        "requests"         # HTTP library
+        "ipython"          # Enhanced Python shell
+    )
+    
+    {{- if eq .profile "developer" "power-user" }}
+    # Additional tools for developer/power-user profiles
+    pip_packages+=(
+        "jupyter"          # Jupyter notebooks
+        "pandas"           # Data analysis
+        "numpy"            # Numerical computing
+        "matplotlib"       # Plotting
+        "flask"            # Web framework
+        "fastapi"          # Modern web framework
+        "sqlalchemy"       # ORM
+    )
+    {{- end }}
+    
+    for package in "${pip_packages[@]}"; do
+        if ! $python_cmd -m pip show "$package" >/dev/null 2>&1; then
+            echo "  Installing $package..."
+            $python_cmd -m pip install --user "$package" || yellow "  ⚠️  Failed to install $package"
+        else
+            echo "  ✅ $package already installed"
+        fi
+    done
+}
+
+# Install Go tools
+setup_go_tools() {
+    if ! command -v go >/dev/null 2>&1; then
+        yellow "⚠️  Go not found, skipping Go tools"
+        return 0
+    fi
+    
+    blue "🐹 Setting up Go development tools..."
+    
+    local go_packages=(
+        "github.com/golangci/golangci-lint/cmd/golangci-lint@latest"  # Linting
+        "honnef.co/go/tools/cmd/staticcheck@latest"                   # Static analysis
+        "github.com/go-delve/delve/cmd/dlv@latest"                   # Debugger
+        "golang.org/x/tools/cmd/goimports@latest"                    # Import management
+        "github.com/fatih/gomodifytags@latest"                       # Struct tag tool
+        "github.com/josharian/impl@latest"                           # Interface implementation
+    )
+    
+    for package in "${go_packages[@]}"; do
+        local tool_name=$(basename "$(echo "$package" | cut -d'@' -f1)")
+        if ! command -v "$tool_name" >/dev/null 2>&1; then
+            echo "  Installing $tool_name..."
+            go install "$package" || yellow "  ⚠️  Failed to install $package"
+        else
+            echo "  ✅ $tool_name already installed"
+        fi
+    done
+}
+
+# Install Rust tools
+setup_rust_tools() {
+    if ! command -v cargo >/dev/null 2>&1; then
+        yellow "⚠️  Rust/Cargo not found, skipping Rust tools"
+        return 0
+    fi
+    
+    blue "🦀 Setting up Rust development tools..."
+    
+    local cargo_packages=(
+        "ripgrep"          # Fast text search
+        "fd-find"          # Fast file find
+        "bat"              # Better cat
+        "exa"              # Better ls
+        "dust"             # Better du
+        "bottom"           # System monitor
+        "tokei"            # Code statistics
+        "hyperfine"        # Benchmarking
+    )
+    
+    {{- if eq .profile "power-user" }}
+    # Additional tools for power users
+    cargo_packages+=(
+        "cargo-edit"       # Cargo subcommands
+        "cargo-watch"      # File watching
+        "cargo-expand"     # Macro expansion
+        "cargo-outdated"   # Dependency checking
+    )
+    {{- end }}
+    
+    for package in "${cargo_packages[@]}"; do
+        if ! cargo install --list | grep -q "^$package"; then
+            echo "  Installing $package..."
+            cargo install "$package" || yellow "  ⚠️  Failed to install $package"
+        else
+            echo "  ✅ $package already installed"
+        fi
+    done
+}
+
+# Install container tools
+setup_container_tools() {
+    blue "🐳 Setting up container tools..."
+    
+    # Docker Compose (if Docker is available but Compose isn't)
+    if command -v docker >/dev/null 2>&1 && ! command -v docker-compose >/dev/null 2>&1; then
+        echo "  Installing Docker Compose..."
+        {{- if eq .chezmoi.os "linux" }}
+        local compose_version="v2.20.0"
+        sudo curl -L "https://github.com/docker/compose/releases/download/$compose_version/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        sudo chmod +x /usr/local/bin/docker-compose
+        {{- else if eq .chezmoi.os "darwin" }}
+        if command -v brew >/dev/null 2>&1; then
+            brew install docker-compose
+        fi
+        {{- end }}
+    fi
+    
+    # Lazydocker (TUI for Docker)
+    if command -v docker >/dev/null 2>&1 && ! command -v lazydocker >/dev/null 2>&1; then
+        echo "  Installing lazydocker..."
+        {{- if eq .chezmoi.os "linux" }}
+        curl https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | bash
+        {{- else if eq .chezmoi.os "darwin" }}
+        if command -v brew >/dev/null 2>&1; then
+            brew install lazydocker
+        fi
+        {{- end }}
+    fi
+}
+
+# Install modern CLI alternatives
+setup_modern_cli_tools() {
+    blue "⚡ Setting up modern CLI alternatives..."
+    
+    {{- if eq .chezmoi.os "linux" }}
+    # Check if we can install via package manager
+    if command -v apt >/dev/null 2>&1; then
+        # Ubuntu/Debian
+        if ! command -v bat >/dev/null 2>&1; then
+            echo "  Installing bat..."
+            sudo apt install -y bat || true
+        fi
+        if ! command -v ripgrep >/dev/null 2>&1; then
+            echo "  Installing ripgrep..."
+            sudo apt install -y ripgrep || true
+        fi
+        if ! command -v fd >/dev/null 2>&1; then
+            echo "  Installing fd..."
+            sudo apt install -y fd-find || true
+        fi
+    elif command -v dnf >/dev/null 2>&1; then
+        # Fedora
+        if ! command -v bat >/dev/null 2>&1; then
+            sudo dnf install -y bat || true
+        fi
+        if ! command -v rg >/dev/null 2>&1; then
+            sudo dnf install -y ripgrep || true
+        fi
+        if ! command -v fd >/dev/null 2>&1; then
+            sudo dnf install -y fd-find || true
+        fi
+    fi
+    {{- else if eq .chezmoi.os "darwin" }}
+    # macOS with Homebrew
+    if command -v brew >/dev/null 2>&1; then
+        local brew_tools=("bat" "ripgrep" "fd" "exa" "dust" "bottom" "tree" "jq" "fzf")
+        for tool in "${brew_tools[@]}"; do
+            if ! command -v "$tool" >/dev/null 2>&1; then
+                echo "  Installing $tool..."
+                brew install "$tool" || yellow "  ⚠️  Failed to install $tool"
+            fi
+        done
+    fi
+    {{- end }}
+}
+
+# Setup Git configuration
+setup_git_config() {
+    if ! command -v git >/dev/null 2>&1; then
+        yellow "⚠️  Git not found, skipping Git configuration"
+        return 0
+    fi
+    
+    blue "🔧 Configuring Git..."
+    
+    # Check if user is already configured
+    if ! git config --global user.name >/dev/null 2>&1; then
+        if ! is_automated; then
+            echo -n "Enter your Git name: "
+            read -r git_name
+            echo -n "Enter your Git email: "
+            read -r git_email
+            
+            git config --global user.name "$git_name"
+            git config --global user.email "$git_email"
+            green "✅ Git user configured"
+        else
+            yellow "⚠️  Git user not configured (running in automated mode)"
+        fi
+    else
+        green "✅ Git user already configured"
+    fi
+    
+    # Set up useful Git defaults
+    git config --global init.defaultBranch main
+    git config --global pull.rebase false
+    git config --global push.default simple
+    git config --global core.autocrlf input
+    git config --global core.editor "${EDITOR:-vim}"
+    
+    # Performance settings
+    git config --global core.preloadindex true
+    git config --global core.fscache true
+    git config --global gc.auto 256
+    
+    green "✅ Git configuration complete"
+}
+
+# Setup shell integrations
+setup_shell_integrations() {
+    blue "🐚 Setting up shell integrations..."
+    
+    # FZF key bindings and completion
+    if command -v fzf >/dev/null 2>&1; then
+        {{- if eq .chezmoi.os "linux" }}
+        if [ -f /usr/share/doc/fzf/examples/key-bindings.bash ]; then
+            echo "  ✅ FZF key bindings available"
+        fi
+        {{- else if eq .chezmoi.os "darwin" }}
+        if command -v brew >/dev/null 2>&1 && [ -f "$(brew --prefix)/opt/fzf/install" ]; then
+            echo "  Installing FZF key bindings..."
+            "$(brew --prefix)/opt/fzf/install" --key-bindings --completion --no-update-rc
+        fi
+        {{- end }}
+    fi
+    
+    green "✅ Shell integrations configured"
+}
+
+# Main execution
+main() {
+    echo "🚀 Additional Development Tools Setup"
+    echo "===================================="
+    echo ""
+    
+    # Profile-specific setup
+    {{- if eq .profile "minimal" }}
+    yellow "📦 Minimal profile detected - installing essential tools only"
+    setup_git_config
+    setup_shell_integrations
+    {{- else if eq .profile "developer" }}
+    blue "👩‍💻 Developer profile detected - installing development tools"
+    setup_git_config
+    setup_nodejs_tools
+    setup_python_tools
+    setup_modern_cli_tools
+    setup_shell_integrations
+    {{- else if eq .profile "power-user" }}
+    blue "⚡ Power-user profile detected - installing comprehensive toolset"
+    setup_git_config
+    setup_nodejs_tools
+    setup_python_tools
+    setup_go_tools
+    setup_rust_tools
+    setup_container_tools
+    setup_modern_cli_tools
+    setup_shell_integrations
+    {{- else }}
+    # Default/unknown profile
+    blue "🔧 Setting up essential tools for unknown profile"
+    setup_git_config
+    setup_modern_cli_tools
+    setup_shell_integrations
+    {{- end }}
+    
+    echo ""
+    green "✅ Additional development tools setup complete!"
+    echo ""
+    yellow "💡 Restart your shell or run 'source ~/.zshrc' to use new tools"
+}
+
+# Run main function
+main "$@"

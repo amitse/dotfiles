@@ -1,0 +1,199 @@
+# FZF (Fuzzy Finder) integration and configuration
+# Only loads if FZF is available
+
+{{- if lookPath "fzf" }}
+
+# Environment variables for FZF
+{{- if lookPath "rg" }}
+export FZF_DEFAULT_COMMAND='rg --files --hidden --follow --glob "!.git/*"'
+{{- else if lookPath "fd" }}
+export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+{{- else }}
+export FZF_DEFAULT_COMMAND='find . -type f'
+{{- end }}
+
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+
+# FZF options for better UX
+export FZF_DEFAULT_OPTS='
+    --height 40%
+    --layout=reverse
+    --border
+    --inline-info
+    --preview "bat --color=always --style=header,grid --line-range :300 {}" 2>/dev/null || cat {}
+    --preview-window=right:50%:wrap
+    --bind=ctrl-u:preview-half-page-up,ctrl-d:preview-half-page-down
+    --bind=ctrl-f:preview-page-down,ctrl-b:preview-page-up
+'
+
+# Directory search options
+export FZF_ALT_C_OPTS="
+    --preview 'tree -C {} | head -200' 2>/dev/null || 
+    --preview 'ls -la {}'
+"
+
+# History search options  
+export FZF_CTRL_R_OPTS="
+    --preview 'echo {}' 
+    --preview-window down:3:hidden:wrap
+    --bind '?:toggle-preview'
+"
+
+# Load FZF key bindings and completion
+{{- if eq .chezmoi.os "linux" }}
+# Try different FZF installation locations on Linux
+if [ -f ~/.fzf.zsh ]; then
+    source ~/.fzf.zsh
+elif [ -f /usr/share/fzf/key-bindings.zsh ]; then
+    source /usr/share/fzf/key-bindings.zsh
+    source /usr/share/fzf/completion.zsh
+elif [ -f /usr/share/doc/fzf/examples/key-bindings.zsh ]; then
+    source /usr/share/doc/fzf/examples/key-bindings.zsh
+    source /usr/share/doc/fzf/examples/completion.zsh
+elif command -v fzf-share >/dev/null; then
+    source "$(fzf-share)/key-bindings.zsh"
+    source "$(fzf-share)/completion.zsh"
+fi
+{{- else if eq .chezmoi.os "darwin" }}
+# macOS (Homebrew) FZF integration
+if [ -f ~/.fzf.zsh ]; then
+    source ~/.fzf.zsh
+elif [ -f /opt/homebrew/opt/fzf/shell/key-bindings.zsh ]; then
+    source /opt/homebrew/opt/fzf/shell/key-bindings.zsh
+    source /opt/homebrew/opt/fzf/shell/completion.zsh
+elif [ -f /usr/local/opt/fzf/shell/key-bindings.zsh ]; then
+    source /usr/local/opt/fzf/shell/key-bindings.zsh
+    source /usr/local/opt/fzf/shell/completion.zsh
+fi
+{{- else }}
+# Windows/WSL
+if [ -f ~/.fzf.zsh ]; then
+    source ~/.fzf.zsh
+fi
+{{- end }}
+
+# Custom FZF functions
+
+# Quick edit with FZF
+fe() {
+    local files
+    files=$(fzf --query="$1" --multi --select-1 --exit-0 \
+        --preview 'bat --color=always --style=header,grid --line-range :300 {}' 2>/dev/null || \
+        --preview 'cat {}')
+    [[ -n "$files" ]] && ${EDITOR:-vim} "${files[@]}"
+}
+
+# Change directory with FZF
+fcd() {
+    local dir
+    dir=$(find ${1:-.} -path '*/\.*' -prune -o -type d -print 2> /dev/null | fzf +m \
+        --preview 'tree -C {} | head -200' 2>/dev/null || \
+        --preview 'ls -la {}') &&
+    cd "$dir"
+}
+
+# Search in files with FZF and ripgrep
+{{- if lookPath "rg" }}
+fif() {
+    if [ ! "$#" -gt 0 ]; then 
+        echo "Need a string to search for!"
+        return 1
+    fi
+    rg --files-with-matches --no-messages "$1" | \
+    fzf --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}"
+}
+
+# Interactive ripgrep with FZF
+fzf_rg() {
+    RG_PREFIX="rg --column --line-number --no-heading --color=always --smart-case "
+    INITIAL_QUERY="${*:-}"
+    fzf --ansi \
+        --color "hl:-1:underline,hl+:-1:underline:reverse" \
+        --disabled --query "$INITIAL_QUERY" \
+        --bind "change:reload:sleep 0.1; $RG_PREFIX {q} || true" \
+        --bind "ctrl-f:unbind(change,ctrl-f)+change-prompt(2. fzf> )+enable-search+clear-query+rebind(ctrl-r)" \
+        --bind "ctrl-r:unbind(ctrl-r)+change-prompt(1. ripgrep> )+disable-search+reload($RG_PREFIX {q} || true)+rebind(change,ctrl-f)" \
+        --prompt '1. ripgrep> ' \
+        --delimiter : \
+        --header '╱ CTRL-R (ripgrep mode) ╱ CTRL-F (fzf mode) ╱' \
+        --preview 'bat --color=always {1} --highlight-line {2}' \
+        --preview-window 'up,60%,border-bottom,+{2}+3/3,~3'
+}
+{{- end }}
+
+# Git integration with FZF
+{{- if lookPath "git" }}
+# Git checkout branch with FZF
+gcof() {
+    local branches branch
+    branches=$(git --no-pager branch -vv) &&
+    branch=$(echo "$branches" | fzf +m) &&
+    git checkout $(echo "$branch" | awk '{print $1}' | sed "s/.* //")
+}
+
+# Git add files with FZF
+gaf() {
+    local files
+    files=$(git status --porcelain | fzf -m --ansi --preview 'git diff --color=always {2}') &&
+    echo "$files" | awk '{print $2}' | xargs git add
+}
+
+# Git log with FZF
+glf() {
+    git log --graph --color=always \
+        --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
+    fzf --ansi --no-sort --reverse --tiebreak=index \
+        --preview 'f() { set -- $(echo -- "$@" | grep -o "[a-f0-9]\{7\}"); [ $# -eq 0 ] || git show --color=always $1; }; f {}' \
+        --bind "ctrl-q:abort,ctrl-m:execute:
+            (grep -o '[a-f0-9]\{7\}' | head -1 |
+            xargs -I % sh -c 'git show --color=always %' |
+            less -R) << 'FZF-EOF'
+            {}
+FZF-EOF" \
+        --preview-window=right:60%
+}
+{{- end }}
+
+# Kill process with FZF
+fkill() {
+    local pid
+    pid=$(ps -ef | sed 1d | fzf -m --header 'Select process to kill' | awk '{print $2}')
+    if [ "x$pid" != "x" ]; then
+        echo $pid | xargs kill -${1:-9}
+    fi
+}
+
+# SSH to host with FZF (if you have SSH config)
+{{- if lookPath "ssh" }}
+fssh() {
+    local host
+    host=$(grep "^Host " ~/.ssh/config 2>/dev/null | grep -v "\*" | cut -d' ' -f2 | fzf)
+    if [ -n "$host" ]; then
+        ssh "$host"
+    fi
+}
+{{- end }}
+
+# Environment variable viewer with FZF
+fenv() {
+    env | fzf --preview 'echo {}' --preview-window down:3:wrap
+}
+
+# Process viewer with FZF
+fps() {
+    ps aux | fzf --header-lines=1 --preview 'echo {}' --preview-window down:3:wrap
+}
+
+{{- else }}
+# FZF not available - provide basic alternatives
+echo "💡 Install fzf for enhanced fuzzy finding: https://github.com/junegunn/fzf"
+
+# Basic alternatives without FZF
+fe() {
+    find . -name "*$1*" -type f | head -20
+}
+
+fcd() {
+    find ${1:-.} -type d -name "*$2*" | head -10
+}
+{{- end }}

@@ -1,0 +1,252 @@
+# Common Platform Configuration
+# Shared settings and functions across all platforms
+
+{{- /* Common environment variables */ -}}
+export LANG="${LANG:-en_US.UTF-8}"
+export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+
+{{- /* Common editor preferences */ -}}
+{{- if .editor.default }}
+export EDITOR="{{ .editor.default }}"
+export VISUAL="{{ .editor.default }}"
+{{- else }}
+{{- if lookPath "code" }}
+export EDITOR="code"
+export VISUAL="code"
+{{- else if lookPath "vim" }}
+export EDITOR="vim"
+export VISUAL="vim"
+{{- else if lookPath "nano" }}
+export EDITOR="nano"
+export VISUAL="nano"
+{{- end }}
+{{- end }}
+
+{{- /* Common pager setup */ -}}
+{{- if lookPath "bat" }}
+export PAGER="bat"
+export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+{{- else if lookPath "less" }}
+export PAGER="less"
+export MANPAGER="less"
+{{- end }}
+
+{{- /* Common development paths */ -}}
+{{- if .paths.workspace }}
+export WORKSPACE="{{ .paths.workspace }}"
+{{- end }}
+
+{{- if .paths.projects }}
+export PROJECTS="{{ .paths.projects }}"
+{{- end }}
+
+{{- /* XDG Base Directory Specification */ -}}
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+
+{{- /* Common history settings */ -}}
+export HISTSIZE=10000
+export SAVEHIST=10000
+export HISTCONTROL=ignoreboth:erasedups
+
+{{- /* Common color support */ -}}
+{{- if lookPath "dircolors" }}
+# Enable color support for ls and add handy aliases
+if [ -x "$(command -v dircolors)" ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+fi
+{{- end }}
+
+# Force color output for grep
+export GREP_COLOR='1;32'
+export GREP_OPTIONS='--color=auto'
+
+{{- /* Common tool configurations */ -}}
+{{- if lookPath "fzf" }}
+# FZF configuration
+export FZF_DEFAULT_OPTS="--height 40% --layout=reverse --border --info=inline"
+{{- if lookPath "fd" }}
+export FZF_DEFAULT_COMMAND="fd --type f --hidden --follow --exclude .git"
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+{{- else if lookPath "rg" }}
+export FZF_DEFAULT_COMMAND="rg --files --hidden --follow --glob '!.git/*'"
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+{{- end }}
+{{- end }}
+
+{{- if lookPath "bat" }}
+# Bat configuration
+export BAT_THEME="TwoDark"
+export BAT_STYLE="numbers,changes,header"
+{{- end }}
+
+{{- if lookPath "rg" }}
+# Ripgrep configuration
+export RIPGREP_CONFIG_PATH="$HOME/.config/ripgrep/config"
+{{- end }}
+
+{{- /* Common Git configuration */ -}}
+{{- if lookPath "git" }}
+# Git configuration helpers
+git_setup_user() {
+    local name="$1"
+    local email="$2"
+    
+    if [ -z "$name" ] || [ -z "$email" ]; then
+        echo "Usage: git_setup_user 'Your Name' 'your.email@domain.com'"
+        return 1
+    fi
+    
+    git config --global user.name "$name"
+    git config --global user.email "$email"
+    echo "✅ Git user configured: $name <$email>"
+}
+
+git_setup_aliases() {
+    # Core aliases
+    git config --global alias.st status
+    git config --global alias.co checkout
+    git config --global alias.br branch
+    git config --global alias.ci commit
+    git config --global alias.unstage 'reset HEAD --'
+    git config --global alias.last 'log -1 HEAD'
+    
+    # Pretty log
+    git config --global alias.lg "log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
+    
+    # Useful shortcuts
+    git config --global alias.pushup 'push --set-upstream origin HEAD'
+    git config --global alias.recent 'branch --sort=-committerdate'
+    git config --global alias.cleanup '!git branch --merged | grep -v "\*\|main\|master\|develop" | xargs -n 1 git branch -d'
+    
+    echo "✅ Git aliases configured"
+}
+{{- end }}
+
+{{- /* Common network utilities */ -}}
+{{- if not (eq .chezmoi.os "windows") }}
+# Network utility functions
+myip() {
+    # Get external IP
+    curl -4 -s ifconfig.me || curl -4 -s icanhazip.com || echo "Unable to get external IP"
+}
+
+localip() {
+    # Get local IP addresses
+    if command -v ip >/dev/null 2>&1; then
+        ip addr show | grep -E 'inet [0-9]' | grep -v '127.0.0.1' | awk '{print $2}' | cut -d/ -f1
+    elif command -v ifconfig >/dev/null 2>&1; then
+        ifconfig | grep -E 'inet [0-9]' | grep -v '127.0.0.1' | awk '{print $2}'
+    else
+        echo "Unable to determine local IP"
+    fi
+}
+
+port_check() {
+    local host="${1:-localhost}"
+    local port="$2"
+    
+    if [ -z "$port" ]; then
+        echo "Usage: port_check [host] <port>"
+        echo "Example: port_check 8080"
+        echo "Example: port_check google.com 80"
+        return 1
+    fi
+    
+    if command -v nc >/dev/null 2>&1; then
+        nc -z "$host" "$port" && echo "✅ $host:$port is open" || echo "❌ $host:$port is closed"
+    else
+        echo "netcat (nc) not available for port checking"
+    fi
+}
+{{- end }}
+
+{{- /* Common file and directory utilities */ -}}
+# Directory creation with path
+mkdirp() {
+    mkdir -p "$@" && cd "$1"
+}
+
+# Safe file operations
+backup() {
+    local file="$1"
+    if [ -f "$file" ]; then
+        cp "$file" "$file.backup.$(date +%Y%m%d_%H%M%S)"
+        echo "✅ Backed up: $file"
+    else
+        echo "❌ File not found: $file"
+        return 1
+    fi
+}
+
+# Extract function for various archive types
+extract() {
+    if [ -f "$1" ]; then
+        case "$1" in
+            *.tar.bz2)   tar xjf "$1"   ;;
+            *.tar.gz)    tar xzf "$1"   ;;
+            *.bz2)       bunzip2 "$1"  ;;
+            *.rar)       unrar x "$1"  ;;
+            *.gz)        gunzip "$1"   ;;
+            *.tar)       tar xf "$1"   ;;
+            *.tbz2)      tar xjf "$1"  ;;
+            *.tgz)       tar xzf "$1"  ;;
+            *.zip)       unzip "$1"    ;;
+            *.Z)         uncompress "$1";;
+            *.7z)        7z x "$1"     ;;
+            *)           echo "'$1' cannot be extracted via extract()" ;;
+        esac
+    else
+        echo "'$1' is not a valid file"
+    fi
+}
+
+{{- /* Performance and debugging helpers */ -}}
+# Timing function
+timeit() {
+    local start=$(date +%s.%N)
+    "$@"
+    local end=$(date +%s.%N)
+    local duration=$(echo "$end - $start" | bc 2>/dev/null || python3 -c "print($end - $start)")
+    echo "⏱️  Execution time: ${duration}s"
+}
+
+# Memory usage of a command
+memit() {
+    {{- if lookPath "time" }}
+    /usr/bin/time -v "$@" 2>&1 | grep "Maximum resident set size"
+    {{- else }}
+    echo "time command not available for memory measurement"
+    "$@"
+    {{- end }}
+}
+
+{{- /* Help function */ -}}
+common_help() {
+    echo "🌍 Common Platform Functions:"
+    echo ""
+    echo "📁 File Operations:"
+    echo "  • mkdirp <dir>     - Create directory and cd into it"
+    echo "  • backup <file>    - Create timestamped backup"
+    echo "  • extract <file>   - Extract various archive formats"
+    echo ""
+    echo "🌐 Network:"
+    echo "  • myip             - Show external IP address"
+    echo "  • localip          - Show local IP addresses"
+    echo "  • port_check <port> - Check if port is open"
+    echo ""
+    echo "🔧 Git Setup:"
+    echo "  • git_setup_user 'Name' 'email' - Configure git user"
+    echo "  • git_setup_aliases             - Install useful git aliases"
+    echo ""
+    echo "⚡ Performance:"
+    echo "  • timeit <command> - Time command execution"
+    echo "  • memit <command>  - Measure memory usage"
+    echo ""
+    echo "💡 Environment Variables:"
+    echo "  • WORKSPACE={{ .paths.workspace | default "Not set" }}"
+    echo "  • EDITOR=$EDITOR"
+    echo "  • PAGER=$PAGER"
+}
