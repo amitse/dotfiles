@@ -1,9 +1,7 @@
-{{- $gitName := promptString "git_name" "Git user name" (.chezmoi.username | default "Your Name") -}}
-{{- $gitEmail := promptString "git_email" "Git email address" "" -}}
+{{- $gitName := .chezmoi.username | default "Your Name" -}}
+{{- $gitEmail := "" -}}
 
-{{- $secretsBackend := promptString "secrets_backend" "Choose secrets backend:\n  1) env - Environment variables (simple)\n  2) op - 1Password (recommended)\n  3) bw - Bitwarden\n  4) file - File-based\nEnter choice (1-4)" "1" -}}
-{{- $secretsMap := dict "1" "env" "2" "op" "3" "bw" "4" "file" -}}
-{{- $selectedSecretsBackend := get $secretsMap $secretsBackend | default "env" -}}
+{{- $selectedSecretsBackend := "env" -}}
 
 [data]
     profile = "power-user"
@@ -14,11 +12,6 @@
     
     [data.secrets]
         backend = "{{ $selectedSecretsBackend }}"
-        {{- if eq $selectedSecretsBackend "op" }}
-        op_vault = "{{ promptString "op_vault" "1Password vault name" "Personal" }}"
-        {{- else if eq $selectedSecretsBackend "bw" }}
-        bw_server = "{{ promptString "bw_server" "Bitwarden server URL (press enter for default)" "https://vault.bitwarden.com" }}"
-        {{- end }}
     
     [data.features]
         modern_cli = true
