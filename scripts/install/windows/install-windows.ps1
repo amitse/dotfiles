@@ -1,50 +1,96 @@
-# Simple PowerShell dotfiles installer# Enhanced PowerShell dotfiles installer using chezmoi
+# Simple PowerShell dotfiles installer# Simple PowerShell dotfiles installer# Enhanced PowerShell dotfiles installer using chezmoi
+
+# Usage: irm https://raw.githubusercontent.com/amitse/dotfiles/main/scripts/install/windows/install-windows.ps1 | iex
 
 # Usage: irm https://raw.githubusercontent.com/amitse/dotfiles/main/scripts/install/windows/install-windows.ps1 | iex# Usage: irm https://raw.githubusercontent.com/amitse/dotfiles/main/install.ps1 | iex
 
+$ErrorActionPreference = "Stop"
 
 
-$ErrorActionPreference = "Stop"param(
 
-    [string]$NonInteractive = $null,
+Write-Host "🚀 Power User Dotfiles Installer" -ForegroundColor Green
 
-Write-Host "🚀 Power User Dotfiles Installer" -ForegroundColor Green    [string]$GitName = "Test User",
+Write-Host "=================================" -ForegroundColor Blue$ErrorActionPreference = "Stop"param(
 
-Write-Host "=================================" -ForegroundColor Blue    [string]$GitEmail = "test@example.com"
+
+
+# List of tools to install    [string]$NonInteractive = $null,
+
+$tools = @(
+
+    "twpayne.chezmoi",Write-Host "🚀 Power User Dotfiles Installer" -ForegroundColor Green    [string]$GitName = "Test User",
+
+    "junegunn.fzf",
+
+    "BurntSushi.ripgrep.MSVC",Write-Host "=================================" -ForegroundColor Blue    [string]$GitEmail = "test@example.com"
+
+    "sharkdp.bat",
+
+    "ajeetdsouza.zoxide",)
+
+    "eza-community.eza",
+
+    "eradman.entr",# List of tools to install
+
+    "GitHub.cli",
+
+    "dandavison.delta",$tools = @($ErrorActionPreference = "Stop"
+
+    "sharkdp.fd",
+
+    "jesseduffield.lazygit",    "twpayne.chezmoi"$DOTFILES_REPO = "amitse/dotfiles"
+
+    "ClementTsang.bottom",
+
+    "bootandy.dust"    "junegunn.fzf"
 
 )
 
-# List of tools to install
-
-$tools = @($ErrorActionPreference = "Stop"
-
-    "twpayne.chezmoi"$DOTFILES_REPO = "amitse/dotfiles"
-
-    "junegunn.fzf"
-
     "BurntSushi.ripgrep.MSVC"Write-Host "🚀 Power User Dotfiles Installer" -ForegroundColor Green
 
-    "sharkdp.bat"Write-Host "=================================" -ForegroundColor Blue
+Write-Host "📦 Installing tools with winget..." -ForegroundColor Yellow
 
-    "ajeetdsouza.zoxide"Write-Host ""
+foreach ($tool in $tools) {    "sharkdp.bat"Write-Host "=================================" -ForegroundColor Blue
 
-    "eza-community.eza"
+    try {
 
-    "eradman.entr"# Function to prompt for git credentials
+        winget install --id $tool --silent --accept-package-agreements --accept-source-agreements | Out-Null    "ajeetdsouza.zoxide"Write-Host ""
+
+        Write-Host "✅ $tool installed" -ForegroundColor Green
+
+    } catch {    "eza-community.eza"
+
+        Write-Host "⚠️  Failed to install $tool, continuing..." -ForegroundColor Yellow
+
+    }    "eradman.entr"# Function to prompt for git credentials
+
+}
 
     "GitHub.cli"function Get-GitCredentials {
 
-    "dandavison.delta"    Write-Host ""
+Write-Host "🔧 Setting up dotfiles with chezmoi..." -ForegroundColor Yellow
 
-    "sharkdp.fd"    Write-Host "🔧 Git Configuration" -ForegroundColor Yellow
+try {    "dandavison.delta"    Write-Host ""
 
-    "jesseduffield.lazygit"    Write-Host "We'll configure git with your information."
+    # Initialize chezmoi with the dotfiles repo
 
-    "ClementTsang.bottom"    Write-Host ""
+    chezmoi init --apply https://github.com/amitse/dotfiles.git    "sharkdp.fd"    Write-Host "🔧 Git Configuration" -ForegroundColor Yellow
+
+    Write-Host "✅ Dotfiles setup complete!" -ForegroundColor Green
+
+} catch {    "jesseduffield.lazygit"    Write-Host "We'll configure git with your information."
+
+    Write-Host "❌ Chezmoi setup failed. Please run manually:" -ForegroundColor Red
+
+    Write-Host "   chezmoi init --apply https://github.com/amitse/dotfiles.git"    "ClementTsang.bottom"    Write-Host ""
+
+}
 
     "bootandy.dust"    
 
-)    do {
+Write-Host ""
+
+Write-Host "🎉 Installation complete! Restart your terminal to use new tools." -ForegroundColor Green)    do {
 
         $gitName = Read-Host "Enter your full name for git commits"
 
