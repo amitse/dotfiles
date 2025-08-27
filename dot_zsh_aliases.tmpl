@@ -1,0 +1,148 @@
+# Zsh-specific aliases and functions
+# Sourced from .zshrc
+
+# Directory shortcuts
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias .....='cd ../../../..'
+
+# Directory listing shortcuts
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+
+# Git aliases (if git is available)
+{{- if lookPath "git" }}
+alias g='git'
+alias ga='git add'
+alias gc='git commit'
+alias gco='git checkout'
+alias gd='git diff'
+alias gl='git log --oneline'
+alias gp='git push'
+alias gs='git status'
+alias gb='git branch'
+alias gm='git merge'
+alias gr='git remote -v'
+{{- end }}
+
+{{- if lookPath "gh" }}
+# GitHub CLI shortcuts
+alias prs='gh pr list'
+alias pr='gh pr view'
+alias issues='gh issue list'
+{{- end }}
+
+# System shortcuts
+alias h='history'
+alias j='jobs -l'
+alias which='type -a'
+alias path='echo -e ${PATH//:/\\n}'
+alias now='date +"%T"'
+alias nowtime=now
+alias nowdate='date +"%d-%m-%Y"'
+
+# Make directories and navigate
+mkcd() {
+    mkdir -p "$1" && cd "$1"
+}
+
+# Extract archives
+extract() {
+    if [ -f "$1" ]; then
+        case "$1" in
+            *.tar.bz2)   tar xjf "$1"     ;;
+            *.tar.gz)    tar xzf "$1"     ;;
+            *.bz2)       bunzip2 "$1"     ;;
+            *.rar)       unrar x "$1"     ;;
+            *.gz)        gunzip "$1"      ;;
+            *.tar)       tar xf "$1"      ;;
+            *.tbz2)      tar xjf "$1"     ;;
+            *.tgz)       tar xzf "$1"     ;;
+            *.zip)       unzip "$1"       ;;
+            *.Z)         uncompress "$1"  ;;
+            *.7z)        7z x "$1"        ;;
+            *)           echo "'$1' cannot be extracted via extract()" ;;
+        esac
+    else
+        echo "'$1' is not a valid file"
+    fi
+}
+
+# Quick file search
+qfind() {
+    find . -name "*$1*" 2>/dev/null
+}
+
+# Process management
+psgrep() {
+    ps aux | grep "$1" | grep -v grep
+}
+
+# Network utilities
+myip() {
+    curl -s http://whatismyip.akamai.com/
+}
+
+localip() {
+    ip route get 1 | awk '{print $NF;exit}' 2>/dev/null || \
+    ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1' | head -1
+}
+
+# File operations
+backup() {
+    cp "$1"{,.bak}
+}
+
+# Calculator
+calc() {
+    echo "scale=3; $*" | bc -l
+}
+
+# Weather (requires curl)
+weather() {
+    local city="${1:-}"
+    curl -s "wttr.in/${city}?format=3"
+}
+
+{{- if lookPath "fzf" }}
+# FZF-enhanced functions
+# Quick edit with fzf
+fe() {
+    local files
+    files=$(fzf --query="$1" --multi --select-1 --exit-0)
+    [[ -n "$files" ]] && ${EDITOR:-vim} "${files[@]}"
+}
+
+# Change to directory with fzf
+fd() {
+    local dir
+    dir=$(find ${1:-.} -path '*/\.*' -prune -o -type d -print 2> /dev/null | fzf +m) &&
+    cd "$dir"
+}
+
+# Search in files with fzf
+fif() {
+    if [ ! "$#" -gt 0 ]; then echo "Need a string to search for!"; return 1; fi
+    rg --files-with-matches --no-messages "$1" | fzf --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}"
+}
+{{- end }}
+
+{{- if lookPath "git" }}
+# Git functions
+# Quick commit
+gac() {
+    git add -A && git commit -m "$1"
+}
+
+# Git log with graph
+glog() {
+    git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit "$@"
+}
+
+# Git branch cleanup
+gbclean() {
+    git branch --merged | grep -v "\*\|main\|master\|develop" | xargs -n 1 git branch -d
+}
+{{- end }}

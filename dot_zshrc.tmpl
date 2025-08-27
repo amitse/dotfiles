@@ -1,0 +1,142 @@
+# ~/.zshrc - Zsh configuration
+# This file is managed by chezmoi - edit the template
+
+# Only run for interactive shells
+[[ $- != *i* ]] && return
+
+# Set default editor
+export EDITOR="${EDITOR:-vim}"
+export VISUAL="${VISUAL:-$EDITOR}"
+
+# History configuration
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+setopt SHARE_HISTORY          # Share history between sessions
+setopt HIST_VERIFY            # Show command before executing from history
+setopt HIST_IGNORE_DUPS       # Ignore duplicate commands
+setopt HIST_IGNORE_SPACE      # Ignore commands starting with space
+setopt HIST_REDUCE_BLANKS     # Remove extra blanks from commands
+
+# Directory navigation
+setopt AUTO_CD                # Auto cd when typing directory name
+setopt AUTO_PUSHD             # Push directories to stack
+setopt PUSHD_IGNORE_DUPS      # Ignore duplicate directories in stack
+setopt CORRECT                # Correct typos in commands
+setopt CORRECT_ALL            # Correct typos in arguments
+
+# Completion system
+autoload -Uz compinit
+compinit
+
+# Case insensitive completion
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+# Colored completion
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+# Menu selection
+zstyle ':completion:*' menu select
+
+# Key bindings
+bindkey -e  # Emacs key bindings
+
+# Better history search
+autoload -U up-line-or-beginning-search
+autoload -U down-line-or-beginning-search
+zle -N up-line-or-beginning-search
+zle -N down-line-or-beginning-search
+bindkey "^[[A" up-line-or-beginning-search
+bindkey "^[[B" down-line-or-beginning-search
+
+{{- if lookPath "fzf" }}
+# FZF integration
+if command -v fzf >/dev/null 2>&1; then
+    # Key bindings
+    source <(fzf --zsh) 2>/dev/null || {
+        # Fallback for older fzf versions
+        if [ -f ~/.fzf.zsh ]; then
+            source ~/.fzf.zsh
+        elif [ -f /usr/share/fzf/key-bindings.zsh ]; then
+            source /usr/share/fzf/key-bindings.zsh
+            source /usr/share/fzf/completion.zsh
+        fi
+    }
+    
+    # Environment variables
+    export FZF_DEFAULT_COMMAND='rg --files --hidden --follow --glob "!.git/*"' 2>/dev/null || export FZF_DEFAULT_COMMAND='find . -type f'
+    export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+    export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border --bind=ctrl-u:preview-half-page-up,ctrl-d:preview-half-page-down'
+fi
+{{- end }}
+
+{{- if lookPath "zoxide" }}
+# Zoxide integration (smart cd)
+if command -v zoxide >/dev/null 2>&1; then
+    eval "$(zoxide init zsh)"
+fi
+{{- end }}
+
+# Prompt configuration
+autoload -Uz vcs_info
+precmd() { vcs_info }
+
+# Git branch info
+zstyle ':vcs_info:git:*' formats ' (%b)'
+zstyle ':vcs_info:*' enable git
+
+setopt PROMPT_SUBST
+
+# Simple but informative prompt
+{{- if eq .chezmoi.os "linux" }}
+PROMPT='%F{green}%n@%m%f:%F{blue}%~%f%F{red}${vcs_info_msg_0_}%f$ '
+{{- else if eq .chezmoi.os "darwin" }}
+PROMPT='%F{cyan}%n@%m%f:%F{blue}%~%f%F{red}${vcs_info_msg_0_}%f$ '
+{{- else }}
+PROMPT='%F{yellow}%n@%m%f:%F{blue}%~%f%F{red}${vcs_info_msg_0_}%f$ '
+{{- end }}
+
+# Source aliases and functions
+if [ -f ~/.config/shell/aliases.sh ]; then
+    source ~/.config/shell/aliases.sh
+fi
+
+if [ -f ~/.zsh_aliases ]; then
+    source ~/.zsh_aliases
+fi
+
+if [ -f ~/.zsh_functions ]; then
+    source ~/.zsh_functions
+fi
+
+# OS-specific configurations
+{{- if eq .chezmoi.os "linux" }}
+# Linux-specific settings
+if [ -f /etc/zsh/zshrc ]; then
+    source /etc/zsh/zshrc
+fi
+
+# Add local bin to PATH if it exists
+if [ -d "$HOME/.local/bin" ]; then
+    export PATH="$HOME/.local/bin:$PATH"
+fi
+
+# Cargo/Rust binaries
+if [ -d "$HOME/.cargo/bin" ]; then
+    export PATH="$HOME/.cargo/bin:$PATH"
+fi
+{{- else if eq .chezmoi.os "darwin" }}
+# macOS-specific settings
+# Homebrew
+if [ -d "/opt/homebrew/bin" ]; then
+    export PATH="/opt/homebrew/bin:$PATH"
+fi
+
+# GNU tools (if installed via Homebrew)
+if [ -d "/opt/homebrew/opt/coreutils/libexec/gnubin" ]; then
+    export PATH="/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH"
+fi
+{{- end }}
+
+# Load local customizations if they exist
+if [ -f ~/.zshrc.local ]; then
+    source ~/.zshrc.local
+fi

@@ -10,6 +10,8 @@ Personal dotfiles managed with [chezmoi](https://chezmoi.io).
 - **Templating**: OS-specific configurations using chezmoi templates
 - **tmux configuration**: Enhanced tmux setup with mouse support, vi-mode, and platform-specific clipboard integration
 - **Modern CLI tools**: Automatic installation of bat, ripgrep, fzf, zoxide, exa, entr, and Midnight Commander
+- **Git & GitHub integration**: Git configuration with aliases and GitHub CLI installation
+- **Zsh configuration**: Complete zsh setup with smart completion, history, and modern tool integration
 - **Smart aliases**: Shell aliases and functions for enhanced productivity
 - **Safe secrets**: Excludes sensitive files and provides patterns for secure secret management
 
@@ -177,6 +179,16 @@ export GITHUB_TOKEN="your_token_here"
 - **PowerShell profile** - Windows-specific enhancements and tool integration
 - **bat config** (`.config/bat/config`) - Syntax highlighting and theming
 - **ripgrep config** (`.config/ripgrep/config`) - Search patterns and file type associations
+
+### Git & GitHub Configuration
+- **Git config** (`.gitconfig`) - Aliases, settings, and tool integration
+- **GitHub CLI** - Automatic installation and integration
+
+### Zsh Configuration (Linux/macOS)
+- **Zsh shell** - Modern shell with advanced features
+- **Zsh config** (`.zshrc`) - Completion, history, and tool integration
+- **Zsh aliases** (`.zsh_aliases`) - Shell-specific aliases and functions
+- **Smart append logic** - Safely integrates with existing `.zshrc` files
 
 ### Automatically Installed CLI Tools
 - **[bat](https://github.com/sharkdp/bat)** - Enhanced `cat` with syntax highlighting

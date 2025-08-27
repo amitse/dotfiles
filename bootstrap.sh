@@ -183,7 +183,7 @@ install_dependencies() {
                 log_info "Installing essential tools (apt)..."
                 sudo apt update
                 # Essential tools
-                sudo apt install -y git tmux curl || true
+                sudo apt install -y git tmux curl zsh || true
                 # Clipboard tools (non-fatal)
                 sudo apt install -y wl-clipboard || sudo apt install -y xclip || sudo apt install -y xsel || true
                 
@@ -191,24 +191,37 @@ install_dependencies() {
                 # Modern CLI tools
                 sudo apt install -y bat ripgrep fzf fd-find || true
                 sudo apt install -y mc || true  # Midnight Commander
-                # Note: exa and zoxide may need different installation methods
+                
+                log_info "Installing GitHub CLI (apt)..."
+                # GitHub CLI installation for Ubuntu/Debian
+                if ! command_exists gh; then
+                    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+                    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+                    sudo apt update && sudo apt install -y gh || true
+                fi
                 
             elif command_exists pacman; then
                 log_info "Installing tools (pacman)..."
-                sudo pacman -S --noconfirm git tmux curl || true
+                sudo pacman -S --noconfirm git tmux curl zsh || true
                 sudo pacman -S --noconfirm wl-clipboard || sudo pacman -S --noconfirm xclip || true
                 
                 log_info "Installing CLI enhancement tools (pacman)..."
                 sudo pacman -S --noconfirm bat ripgrep fzf fd exa zoxide mc || true
                 
+                log_info "Installing GitHub CLI (pacman)..."
+                sudo pacman -S --noconfirm github-cli || true
+                
             elif command_exists dnf; then
                 log_info "Installing tools (dnf)..."
-                sudo dnf install -y git tmux curl || true
+                sudo dnf install -y git tmux curl zsh || true
                 sudo dnf install -y wl-clipboard || sudo dnf install -y xclip || true
                 
                 log_info "Installing CLI enhancement tools (dnf)..."
                 sudo dnf install -y bat ripgrep fzf fd-find mc || true
                 # exa and zoxide may need different repos
+                
+                log_info "Installing GitHub CLI (dnf)..."
+                sudo dnf install -y gh || true
             fi
             
             # Try to install tools via other methods if package manager didn't have them
@@ -217,10 +230,13 @@ install_dependencies() {
         "darwin")
             if command_exists brew; then
                 log_info "Installing tools (Homebrew)..."
-                brew install git tmux || true
+                brew install git tmux zsh || true
                 
                 log_info "Installing CLI enhancement tools (Homebrew)..."
                 brew install bat ripgrep fzf fd exa zoxide entr midnight-commander || true
+                
+                log_info "Installing GitHub CLI (Homebrew)..."
+                brew install gh || true
             fi
             ;;
         "windows")
@@ -275,7 +291,11 @@ install_modern_cli_tools_linux() {
 install_modern_cli_tools_windows() {
     if command_exists winget.exe; then
         log_info "Installing CLI tools via winget..."
-        # Install tools that are available via winget
+        # Install essential tools
+        winget.exe install Git.Git --silent || true
+        winget.exe install GitHub.cli --silent || true
+        
+        # Install modern CLI tools that are available via winget
         winget.exe install sharkdp.bat --silent || true
         winget.exe install BurntSushi.ripgrep.MSVC --silent || true
         winget.exe install junegunn.fzf --silent || true
@@ -284,11 +304,19 @@ install_modern_cli_tools_windows() {
         
     elif command_exists scoop; then
         log_info "Installing CLI tools via scoop..."
+        # Essential tools
+        scoop install git gh || true
+        
+        # Modern CLI tools
         scoop install bat ripgrep fzf zoxide || true
         scoop install exa entr || true
         
     elif command_exists choco; then
         log_info "Installing CLI tools via chocolatey..."
+        # Essential tools
+        choco install git github-cli -y || true
+        
+        # Modern CLI tools
         choco install bat ripgrep fzf zoxide -y || true
         # Some tools may not be available
     fi

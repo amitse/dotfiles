@@ -46,23 +46,31 @@ fi
 # Install dependencies
 echo -e "${BLUE}📦 Installing dependencies...${NC}"
 if command -v apt-get >/dev/null 2>&1; then
-    sudo apt install -y git tmux curl
+    sudo apt install -y git tmux curl zsh
     # Try clipboard tools (non-fatal)
     sudo apt install -y wl-clipboard 2>/dev/null || \
     sudo apt install -y xclip 2>/dev/null || \
     sudo apt install -y xsel 2>/dev/null || true
+    
+    echo -e "${BLUE}📦 Installing GitHub CLI...${NC}"
+    # GitHub CLI for Ubuntu/Debian
+    if ! command -v gh >/dev/null 2>&1; then
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg 2>/dev/null
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+        sudo apt update && sudo apt install -y gh 2>/dev/null || true
+    fi
     
     echo -e "${BLUE}📦 Installing CLI enhancement tools...${NC}"
     # Modern CLI tools
     sudo apt install -y bat ripgrep fzf fd-find mc 2>/dev/null || true
     
 elif command -v pacman >/dev/null 2>&1; then
-    sudo pacman -S --noconfirm git tmux curl
+    sudo pacman -S --noconfirm git tmux curl zsh
     sudo pacman -S --noconfirm wl-clipboard 2>/dev/null || \
     sudo pacman -S --noconfirm xclip 2>/dev/null || true
     
     echo -e "${BLUE}📦 Installing CLI enhancement tools...${NC}"
-    sudo pacman -S --noconfirm bat ripgrep fzf fd exa zoxide mc 2>/dev/null || true
+    sudo pacman -S --noconfirm bat ripgrep fzf fd exa zoxide mc github-cli 2>/dev/null || true
 fi
 
 # Try alternative installation for missing tools

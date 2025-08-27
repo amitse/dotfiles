@@ -90,6 +90,22 @@ function Install-CLITools {
     if (Test-Command "winget") {
         Write-Host "   Using winget..." -ForegroundColor Gray
         
+        # Install essential tools first
+        $essentialTools = @(
+            @{Name="Git"; Id="Git.Git"},
+            @{Name="GitHub CLI"; Id="GitHub.cli"}
+        )
+        
+        foreach ($tool in $essentialTools) {
+            try {
+                Write-Host "   Installing $($tool.Name)..." -ForegroundColor Gray
+                winget install $tool.Id --silent --accept-package-agreements --accept-source-agreements 2>$null
+            }
+            catch {
+                Write-Host "   ⚠️  Failed to install $($tool.Name) via winget" -ForegroundColor Yellow
+            }
+        }
+        
         # Install modern CLI tools
         $tools = @(
             @{Name="bat"; Id="sharkdp.bat"},
@@ -114,6 +130,19 @@ function Install-CLITools {
         # Add extras bucket for more tools
         scoop bucket add extras 2>$null
         
+        # Install essential tools
+        $essentialTools = @("git", "gh")
+        foreach ($tool in $essentialTools) {
+            try {
+                Write-Host "   Installing $tool..." -ForegroundColor Gray
+                scoop install $tool 2>$null
+            }
+            catch {
+                Write-Host "   ⚠️  Failed to install $tool via scoop" -ForegroundColor Yellow
+            }
+        }
+        
+        # Install modern CLI tools
         $tools = @("bat", "ripgrep", "fzf", "zoxide", "exa")
         foreach ($tool in $tools) {
             try {
@@ -128,6 +157,19 @@ function Install-CLITools {
     elseif (Test-Command "choco") {
         Write-Host "   Using chocolatey..." -ForegroundColor Gray
         
+        # Install essential tools
+        $essentialTools = @("git", "github-cli")
+        foreach ($tool in $essentialTools) {
+            try {
+                Write-Host "   Installing $tool..." -ForegroundColor Gray
+                choco install $tool -y 2>$null
+            }
+            catch {
+                Write-Host "   ⚠️  Failed to install $tool via chocolatey" -ForegroundColor Yellow
+            }
+        }
+        
+        # Install modern CLI tools
         $tools = @("bat", "ripgrep", "fzf", "zoxide")
         foreach ($tool in $tools) {
             try {
