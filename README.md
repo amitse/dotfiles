@@ -37,7 +37,12 @@ chezmoi apply
 # Install chezmoi
 sh -c "$(curl -fsLS get.chezmoi.io)"
 
-# Or with Homebrew
+# Or with package managers
+# Ubuntu/Debian:
+sudo apt install chezmoi
+# Arch Linux:
+sudo pacman -S chezmoi
+# Homebrew (macOS/Linux):
 brew install chezmoi
 
 # Initialize with your dotfiles repo
@@ -102,7 +107,10 @@ export GITHUB_TOKEN="your_token_here"
   - Ctrl-a prefix
   - Mouse support
   - Vi-mode copy
-  - Platform-specific clipboard integration
+  - Cross-platform clipboard integration:
+    - **Windows**: `clip.exe`
+    - **Linux**: `wl-copy` (Wayland) → `xclip` → `xsel` → fallback
+    - **macOS**: `pbcopy`
   - 256-color support
   - Sensible defaults
 
@@ -178,6 +186,25 @@ chezmoi execute-template < template_file.tmpl
 ```bash
 chezmoi apply --force ~/.tmux.conf
 ```
+
+## Linux Dependencies
+
+For full tmux clipboard integration on Linux, install one of:
+
+```bash
+# Wayland (recommended for modern Linux)
+sudo apt install wl-clipboard    # Ubuntu/Debian
+sudo pacman -S wl-clipboard      # Arch Linux
+
+# X11 systems
+sudo apt install xclip           # Ubuntu/Debian
+sudo pacman -S xclip             # Arch Linux
+# OR
+sudo apt install xsel            # Ubuntu/Debian
+sudo pacman -S xsel              # Arch Linux
+```
+
+The tmux config will automatically detect and use the best available clipboard tool.
 
 ## Bootstrap script
 
