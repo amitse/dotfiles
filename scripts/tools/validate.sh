@@ -61,17 +61,17 @@ test_shell_scripts() {
     
     local errors=0
     
-    # Test install.sh
-    if bash -n "$REPO_ROOT/install.sh"; then
-        echo -e "${GREEN}✅ install.sh syntax valid${NC}"
+    # Test install script (now under scripts/install)
+    if bash -n "$REPO_ROOT/scripts/install/install-unix.sh"; then
+        echo -e "${GREEN}✅ install-unix.sh syntax valid${NC}"
     else
-        echo -e "${RED}❌ install.sh syntax error${NC}"
+        echo -e "${RED}❌ install-unix.sh syntax error${NC}"
         ((errors++))
     fi
     
     # Test health-check.sh
-    if [[ -f "$REPO_ROOT/scripts/health-check.sh" ]]; then
-        if bash -n "$REPO_ROOT/scripts/health-check.sh"; then
+    if [[ -f "$REPO_ROOT/scripts/health/health-check.sh" ]]; then
+        if bash -n "$REPO_ROOT/scripts/health/health-check.sh"; then
             echo -e "${GREEN}✅ health-check.sh syntax valid${NC}"
         else
             echo -e "${RED}❌ health-check.sh syntax error${NC}"
@@ -104,10 +104,10 @@ test_powershell_scripts() {
     echo -e "${BLUE}💻 Testing PowerShell script syntax...${NC}"
     
     if command -v pwsh >/dev/null 2>&1; then
-        if pwsh -Command "& { . '$REPO_ROOT/install.ps1' -NonInteractive true -ErrorAction Stop }" -ErrorAction Stop; then
-            echo -e "${GREEN}✅ install.ps1 syntax valid${NC}"
+        if pwsh -Command "& { . '$REPO_ROOT/scripts/install/install-windows.ps1' -NonInteractive true -ErrorAction Stop }" -ErrorAction Stop; then
+            echo -e "${GREEN}✅ install-windows.ps1 syntax valid${NC}"
         else
-            echo -e "${RED}❌ install.ps1 syntax error${NC}"
+            echo -e "${RED}❌ install-windows.ps1 syntax error${NC}"
             return 1
         fi
     else
