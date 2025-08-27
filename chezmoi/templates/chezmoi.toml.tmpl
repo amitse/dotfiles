@@ -1,17 +1,12 @@
-{{- $gitName := .chezmoi.username | default "Your Name" -}}
-{{- $gitEmail := "" -}}
-
-{{- $selectedSecretsBackend := "env" -}}
-
 [data]
     profile = "power-user"
     
     [data.user]
-        name = "{{ $gitName }}"
-        email = "{{ $gitEmail }}"
+        name = "{{ .chezmoi.username | default "Your Name" }}"
+        email = ""
     
     [data.secrets]
-        backend = "{{ $selectedSecretsBackend }}"
+        backend = "env"
     
     [data.features]
         modern_cli = true

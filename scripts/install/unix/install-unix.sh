@@ -1,64 +1,124 @@
-#!/bin/bash
-# Enhanced dotfiles installer using chezmoi
-# Usage (Linux/macOS):
+#!/bin/bash#!/bin/bash
+
+# Simple dotfiles installer# Enhanced dotfiles installer using chezmoi
+
+# Usage: curl -fsSL https://raw.githubusercontent.com/amitse/dotfiles/main/scripts/install/unix/install-unix.sh | bash# Usage (Linux/macOS):
+
 #   curl -fsSL https://raw.githubusercontent.com/amitse/dotfiles/main/scripts/install/unix/install-unix.sh | bash
 
 set -e
 
-# Colors
+set -e
+
+echo "🚀 Power User Dotfiles Installer"
+
+echo "================================="# Colors
+
 GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-CYAN='\033[0;36m'
-NC='\033[0m'
 
-DOTFILES_REPO="amitse/dotfiles"
+# Detect package managerBLUE='\033[0;34m'
 
-echo -e "${GREEN}🚀 Power User Dotfiles Installer${NC}"
-echo -e "${BLUE}=================================${NC}"
-echo ""
+if command -v apt >/dev/null 2>&1; thenYELLOW='\033[1;33m'
 
-# Safe read helper: prefer /dev/tty when stdin is not a terminal (e.g. curl | bash)
-safe_read() {
-    # Usage: safe_read "Prompt: " varname
-    local prompt="$1"
-    local __resultvar="$2"
-    # If stdin is a TTY, read normally
-    if [ -t 0 ]; then
-        read -r -p "$prompt" "$__resultvar"
-        return $?
-    fi
-    # Otherwise try reading from /dev/tty if available. Use fd 3 to
-    # avoid clobbering stdin/stdout and improve compatibility.
-    if [ -e /dev/tty ]; then
+    PM="apt"RED='\033[0;31m'
+
+    INSTALL_CMD="sudo apt update && sudo apt install -y"CYAN='\033[0;36m'
+
+    TOOLS="git tmux fzf ripgrep bat zoxide exa entr gh delta fd-find"NC='\033[0m'
+
+elif command -v dnf >/dev/null 2>&1; then
+
+    PM="dnf"DOTFILES_REPO="amitse/dotfiles"
+
+    INSTALL_CMD="sudo dnf install -y"
+
+    TOOLS="git tmux fzf ripgrep bat zoxide exa entr gh delta fd-find"echo -e "${GREEN}🚀 Power User Dotfiles Installer${NC}"
+
+elif command -v yum >/dev/null 2>&1; thenecho -e "${BLUE}=================================${NC}"
+
+    PM="yum"echo ""
+
+    INSTALL_CMD="sudo yum install -y"
+
+    TOOLS="git tmux fzf ripgrep bat zoxide exa entr gh delta fd-find"# Safe read helper: prefer /dev/tty when stdin is not a terminal (e.g. curl | bash)
+
+elif command -v pacman >/dev/null 2>&1; thensafe_read() {
+
+    PM="pacman"    # Usage: safe_read "Prompt: " varname
+
+    INSTALL_CMD="sudo pacman -S --noconfirm"    local prompt="$1"
+
+    TOOLS="git tmux fzf ripgrep bat zoxide exa entr github-cli git-delta fd"    local __resultvar="$2"
+
+elif command -v brew >/dev/null 2>&1; then    # If stdin is a TTY, read normally
+
+    PM="brew"    if [ -t 0 ]; then
+
+    INSTALL_CMD="brew install"        read -r -p "$prompt" "$__resultvar"
+
+    TOOLS="git tmux fzf ripgrep bat zoxide exa entr gh git-delta fd"        return $?
+
+else    fi
+
+    echo "❌ No supported package manager found (apt/dnf/yum/pacman/brew)"    # Otherwise try reading from /dev/tty if available. Use fd 3 to
+
+    exit 1    # avoid clobbering stdin/stdout and improve compatibility.
+
+fi    if [ -e /dev/tty ]; then
+
         # Open /dev/tty on fd 3 for reading, read using -u 3, then close fd 3
-        exec 3</dev/tty
+
+echo "📦 Installing tools with $PM..."        exec 3</dev/tty
+
         read -r -u 3 -p "$prompt" "$__resultvar"
-        local rc=$?
-        exec 3<&-
-        return $rc
-    fi
-    # Non-interactive environment: return failure and set variable empty
-    eval "$__resultvar=''"
-    return 1
-}
+
+# Install chezmoi first        local rc=$?
+
+if ! command -v chezmoi >/dev/null 2>&1; then        exec 3<&-
+
+    if [ "$PM" = "brew" ]; then        return $rc
+
+        brew install chezmoi    fi
+
+    else    # Non-interactive environment: return failure and set variable empty
+
+        sh -c "$(curl -fsLS get.chezmoi.io)" -- -b ~/.local/bin    eval "$__resultvar=''"
+
+        export PATH="$HOME/.local/bin:$PATH"    return 1
+
+    fi}
+
+fi
 
 # Function to prompt for git credentials
-prompt_git_credentials() {
-    echo ""
-    echo -e "${YELLOW}🔧 Git Configuration${NC}"
+
+# Install all tools in one commandprompt_git_credentials() {
+
+echo "📦 Installing: $TOOLS"    echo ""
+
+$INSTALL_CMD $TOOLS || echo "⚠️  Some tools may have failed to install, continuing..."    echo -e "${YELLOW}🔧 Git Configuration${NC}"
+
     echo "We'll configure git with your information."
-    echo ""
-    
-    # Prompt for git name (use safe_read; fallback to env or default)
-    if safe_read "Enter your full name for git commits: " git_name; then
-        while [[ -z "$git_name" ]]; do
-            echo -e "${RED}❌ Name cannot be empty${NC}"
-            if ! safe_read "Enter your full name for git commits: " git_name; then
+
+echo "🔧 Setting up dotfiles with chezmoi..."    echo ""
+
+if chezmoi init --apply https://github.com/amitse/dotfiles.git; then    
+
+    echo "✅ Dotfiles setup complete!"    # Prompt for git name (use safe_read; fallback to env or default)
+
+else    if safe_read "Enter your full name for git commits: " git_name; then
+
+    echo "❌ Chezmoi setup failed. Please run manually:"        while [[ -z "$git_name" ]]; do
+
+    echo "   chezmoi init --apply https://github.com/amitse/dotfiles.git"            echo -e "${RED}❌ Name cannot be empty${NC}"
+
+fi            if ! safe_read "Enter your full name for git commits: " git_name; then
+
                 break
-            fi
-        done
+
+echo ""            fi
+
+echo "🎉 Installation complete! Restart your terminal to use new tools."        done
     else
         # No tty: try environment or pick a default
         git_name="${GIT_NAME:-Test User}"

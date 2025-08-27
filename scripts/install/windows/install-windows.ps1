@@ -1,49 +1,94 @@
-# Enhanced PowerShell dotfiles installer using chezmoi
-# Usage: irm https://raw.githubusercontent.com/amitse/dotfiles/main/install.ps1 | iex
+# Simple PowerShell dotfiles installer# Enhanced PowerShell dotfiles installer using chezmoi
 
-param(
+# Usage: irm https://raw.githubusercontent.com/amitse/dotfiles/main/scripts/install/windows/install-windows.ps1 | iex# Usage: irm https://raw.githubusercontent.com/amitse/dotfiles/main/install.ps1 | iex
+
+
+
+$ErrorActionPreference = "Stop"param(
+
     [string]$NonInteractive = $null,
-    [string]$GitName = "Test User",
-    [string]$GitEmail = "test@example.com"
+
+Write-Host "🚀 Power User Dotfiles Installer" -ForegroundColor Green    [string]$GitName = "Test User",
+
+Write-Host "=================================" -ForegroundColor Blue    [string]$GitEmail = "test@example.com"
+
 )
 
-$ErrorActionPreference = "Stop"
-$DOTFILES_REPO = "amitse/dotfiles"
+# List of tools to install
 
-Write-Host "🚀 Power User Dotfiles Installer" -ForegroundColor Green
-Write-Host "=================================" -ForegroundColor Blue
-Write-Host ""
+$tools = @($ErrorActionPreference = "Stop"
 
-# Function to prompt for git credentials
-function Get-GitCredentials {
-    Write-Host ""
-    Write-Host "🔧 Git Configuration" -ForegroundColor Yellow
-    Write-Host "We'll configure git with your information."
-    Write-Host ""
-    
-    do {
+    "twpayne.chezmoi"$DOTFILES_REPO = "amitse/dotfiles"
+
+    "junegunn.fzf"
+
+    "BurntSushi.ripgrep.MSVC"Write-Host "🚀 Power User Dotfiles Installer" -ForegroundColor Green
+
+    "sharkdp.bat"Write-Host "=================================" -ForegroundColor Blue
+
+    "ajeetdsouza.zoxide"Write-Host ""
+
+    "eza-community.eza"
+
+    "eradman.entr"# Function to prompt for git credentials
+
+    "GitHub.cli"function Get-GitCredentials {
+
+    "dandavison.delta"    Write-Host ""
+
+    "sharkdp.fd"    Write-Host "🔧 Git Configuration" -ForegroundColor Yellow
+
+    "jesseduffield.lazygit"    Write-Host "We'll configure git with your information."
+
+    "ClementTsang.bottom"    Write-Host ""
+
+    "bootandy.dust"    
+
+)    do {
+
         $gitName = Read-Host "Enter your full name for git commits"
-    } while ([string]::IsNullOrWhiteSpace($gitName))
-    
-    do {
-        $gitEmail = Read-Host "Enter your email address for git commits"
-    } while ($gitEmail -notmatch "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
-    
-    Write-Host ""
-    Write-Host "✅ Git configured for: $gitName <$gitEmail>" -ForegroundColor Green
-    
-    return @{
-        Name = $gitName
-        Email = $gitEmail
-    }
-}
 
-# Function to install chezmoi
-function Install-Chezmoi {
-    if (Get-Command chezmoi -ErrorAction SilentlyContinue) {
+Write-Host "📦 Installing tools with winget..." -ForegroundColor Yellow    } while ([string]::IsNullOrWhiteSpace($gitName))
+
+try {    
+
+    # Install all tools in one command    do {
+
+    winget install --id $($tools -join ' --id ') --silent --accept-package-agreements --accept-source-agreements        $gitEmail = Read-Host "Enter your email address for git commits"
+
+    Write-Host "✅ Tools installed successfully!" -ForegroundColor Green    } while ($gitEmail -notmatch "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
+
+} catch {    
+
+    Write-Host "⚠️  Some tools may have failed to install, continuing..." -ForegroundColor Yellow    Write-Host ""
+
+}    Write-Host "✅ Git configured for: $gitName <$gitEmail>" -ForegroundColor Green
+
+    
+
+Write-Host "🔧 Setting up dotfiles with chezmoi..." -ForegroundColor Yellow    return @{
+
+try {        Name = $gitName
+
+    # Initialize chezmoi with the dotfiles repo        Email = $gitEmail
+
+    chezmoi init --apply https://github.com/amitse/dotfiles.git    }
+
+    Write-Host "✅ Dotfiles setup complete!" -ForegroundColor Green}
+
+} catch {
+
+    Write-Host "❌ Chezmoi setup failed. Please run manually:" -ForegroundColor Red# Function to install chezmoi
+
+    Write-Host "   chezmoi init --apply https://github.com/amitse/dotfiles.git"function Install-Chezmoi {
+
+}    if (Get-Command chezmoi -ErrorAction SilentlyContinue) {
+
         Write-Host "✅ chezmoi already installed" -ForegroundColor Blue
-        return
-    }
+
+Write-Host ""        return
+
+Write-Host "🎉 Installation complete! Restart your terminal to use new tools." -ForegroundColor Green    }
     
     Write-Host "📦 Installing chezmoi..." -ForegroundColor Blue
     
