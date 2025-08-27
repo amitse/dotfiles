@@ -14,6 +14,9 @@ NC='\033[0m'
 
 DOTFILES_REPO="amitse/dotfiles"
 
+# Default profile: 3 = Power User. Can be overridden by setting PROFILE_CHOICE env var
+PROFILE_CHOICE="${PROFILE_CHOICE:-3}"
+
 echo -e "${GREEN}🚀 Enhanced Dotfiles Installer${NC}"
 echo -e "${BLUE}================================${NC}"
 echo ""
@@ -71,9 +74,9 @@ select_profile() {
         echo -e "${YELLOW}Which profile would you like to install?${NC}"
         # Try to read interactively (prefers /dev/tty when stdin isn't a TTY)
         if ! safe_read "Enter your choice (1-3, or 'h' for help): " choice; then
-            # No interactive TTY available — pick a sensible default (Developer)
-            echo -e "${YELLOW}No TTY available; defaulting to Developer profile (2). To force non-interactive install, run with --non-interactive.${NC}"
-            choice=2
+            # No interactive TTY available — pick a sensible default (Power User)
+            echo -e "${YELLOW}No TTY available; defaulting to Power User profile (3). To force non-interactive install, run with --non-interactive.${NC}"
+            choice=3
         fi
         
         case $choice in
@@ -300,8 +303,13 @@ main() {
     # Trap to ensure cleanup
     trap cleanup EXIT
     
-    # Interactive profile selection
-    select_profile
+    # Profile selection: default to Power User (3) unless the user requests choosing a profile
+    # To force an interactive profile choice, run the installer with --choose-profile
+    if [[ "${1:-}" == "--choose-profile" ]] || [[ "${CHOOSE_PROFILE:-}" == "1" ]]; then
+        select_profile
+    else
+        echo -e "${YELLOW}Using profile ${PROFILE_CHOICE} (default: Power User). To choose a different profile interactively, re-run with --choose-profile or set PROFILE_CHOICE environment variable.${NC}"
+    fi
     
     # Git credentials
     prompt_git_credentials
@@ -324,7 +332,8 @@ main() {
 
 # Handle non-interactive mode (for CI/testing)
 if [[ "${1:-}" == "--non-interactive" ]]; then
-    export PROFILE_CHOICE="${2:-2}"
+    # Default non-interactive profile is Power User (3) unless explicitly provided
+    export PROFILE_CHOICE="${2:-3}"
     export GIT_NAME="${3:-Test User}"
     export GIT_EMAIL="${4:-test@example.com}"
     echo -e "${YELLOW}Running in non-interactive mode...${NC}"
