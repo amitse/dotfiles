@@ -2,6 +2,8 @@
 
 Personal dotfiles managed with [chezmoi](https://chezmoi.io).
 
+> 🤖 **For AI Assistants**: See [README_LLM.md](README_LLM.md) for structured troubleshooting and integration guidance.
+
 ## Features
 
 - **Cross-platform**: Works on Windows, macOS, and Linux
@@ -271,6 +273,7 @@ All scripts support dry-run mode and automatic dependency installation.
 
 ## Resources
 
+- **[LLM Assistant Guide](README_LLM.md)** - Structured guide for AI assistants and troubleshooting
 - [chezmoi documentation](https://chezmoi.io/)
 - [chezmoi quick start](https://chezmoi.io/quick-start/)
 - [Template functions](https://chezmoi.io/user-guide/templating/)
