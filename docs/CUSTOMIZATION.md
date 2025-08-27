@@ -35,10 +35,10 @@ chezmoi apply
 
 ## 📂 Understanding the Structure
 
-The modular structure in `_partials/` allows you to customize specific aspects:
+The modular structure in `templates/partials/` allows you to customize specific aspects:
 
 ```
-_partials/
+templates/partials/
 ├── shell/          # Shell configurations
 ├── tools/          # Modern CLI tool configs
 ├── platforms/      # Platform-specific configs
@@ -62,13 +62,13 @@ Then select a different profile when prompted.
 
 ### Platform-Specific Settings
 Customize platform-specific configurations in:
-- `_partials/platforms/windows.sh.tmpl` (Windows/WSL)
-- `_partials/platforms/linux.sh.tmpl` (Linux)
-- `_partials/platforms/macos.sh.tmpl` (macOS)
+- `templates/partials/platforms/windows.sh.tmpl` (Windows/WSL)
+- `templates/partials/platforms/linux.sh.tmpl` (Linux)
+- `templates/partials/platforms/macos.sh.tmpl` (macOS)
 
 ## 📚 Advanced Customization
 
-For detailed customization examples and advanced configuration patterns, see the template files in the `_partials/` directory.
+For detailed customization examples and advanced configuration patterns, see the template files in the `templates/partials/` directory.
 
 Each template file includes comments explaining available options and customization points.
 

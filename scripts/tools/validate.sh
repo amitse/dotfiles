@@ -30,10 +30,10 @@ test_required_files() {
         "PLAN.md"
         ".chezmoi/chezmoi.toml.tmpl"
         "templates/root/dot_zshrc.tmpl"
-        "_partials/shell/core.sh.tmpl"
-        "_partials/shell/exports.sh.tmpl"
-        "_partials/shell/paths.sh.tmpl"
-        "_partials/shell/functions.sh.tmpl"
+        "templates/partials/shell/core.sh.tmpl"
+        "templates/partials/shell/exports.sh.tmpl"
+        "templates/partials/shell/paths.sh.tmpl"
+        "templates/partials/shell/functions.sh.tmpl"
     )
     
     local missing_files=()
@@ -230,7 +230,7 @@ test_repository_structure() {
     echo -e "${BLUE}🏗️ Testing repository structure...${NC}"
     
     local required_dirs=(
-        "_partials"
+        "templates/partials"
         "_partials/shell"
         "docs"
         "scripts"

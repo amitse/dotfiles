@@ -213,7 +213,7 @@ jobs:
           echo "🏗️ Validating repository structure..."
           
           # Check essential directories exist
-          required_dirs=("_partials" "docs" "scripts" ".chezmoi")
+          required_dirs=("templates/partials" "docs" "scripts" ".chezmoi")
           for dir in "${required_dirs[@]}"; do
             if [[ ! -d "$dir" ]]; then
               echo "❌ Required directory missing: $dir"

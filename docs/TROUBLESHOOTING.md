@@ -171,7 +171,7 @@ chezmoi status
 1. Check the health check output:
    - Windows PowerShell: `.\scripts\health-check.ps1`
    - Linux/macOS/Git Bash: `bash scripts/health-check.sh`
-2. Review your platform-specific configuration in `_partials/platforms/`
+2. Review your platform-specific configuration in `templates/partials/platforms/`
 3. Ensure all required tools are installed for your chosen profile
 4. Try switching to a minimal profile to isolate issues
 
