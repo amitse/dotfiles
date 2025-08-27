@@ -58,18 +58,27 @@ install_tools() {
     log_info "Installing tools for profile: $profile"
     log_info "Using package manager: $pm"
     
-    # Essential tools for all profiles
+    # Essential tools for power user setup
     local essential_tools=(
-        {{- range .tools.essential }}
-        "{{ . }}"
-        {{- end }}
+        "git"
+        "tmux"
+        "fzf"
+        "ripgrep"
+        "bat"
+        "zoxide"
+        "exa"
+        "entr"
+        "gh"
+        "delta"
+        "fd"
     )
     
     # Optional tools
     local optional_tools=(
-        {{- range .tools.optional }}
-        "{{ . }}"
-        {{- end }}
+        "lazygit"
+        "gitui"
+        "bottom"
+        "dust"
     )
     
     # Install essential tools
@@ -199,12 +208,21 @@ main() {
     if [ "$pm" = "none" ]; then
         log_warning "No package manager detected"
         log_info "Please install tools manually:"
-        {{- range .tools.essential }}
-        log_info "  - {{ . }}"
-        {{- end }}
-        {{- range .tools.optional }}
-        log_info "  - {{ . }} (optional)"
-        {{- end }}
+        log_info "  - git"
+        log_info "  - tmux"
+        log_info "  - fzf"
+        log_info "  - ripgrep"
+        log_info "  - bat"
+        log_info "  - zoxide"
+        log_info "  - exa"
+        log_info "  - entr"
+        log_info "  - gh"
+        log_info "  - delta"
+        log_info "  - fd"
+        log_info "  - lazygit (optional)"
+        log_info "  - gitui (optional)"
+        log_info "  - bottom (optional)"
+        log_info "  - dust (optional)"
         return 0
     fi
     
@@ -216,11 +234,12 @@ main() {
     log_info "Verifying essential tools..."
     local missing_tools=()
     
-    {{- range .tools.essential }}
-    if ! command -v "{{ . }}" >/dev/null 2>&1; then
-        missing_tools+=("{{ . }}")
-    fi
-    {{- end }}
+    # Check essential tools
+    for tool in "git" "tmux" "fzf" "ripgrep" "bat" "zoxide" "exa" "entr" "gh" "delta" "fd"; do
+        if ! command -v "$tool" >/dev/null 2>&1; then
+            missing_tools+=("$tool")
+        fi
+    done
     
     if [ ${#missing_tools[@]} -eq 0 ]; then
         log_success "All essential tools are available"
