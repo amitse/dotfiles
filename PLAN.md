@@ -37,7 +37,7 @@ dotfiles/
 │   ├── 📄 run_onchange_40-update-tools.sh.tmpl
 │   └── 📄 run_once_after_90-setup-complete.sh.tmpl
 │
-├── 📂 _partials/                        # Modular configuration pieces
+├── 📂 templates/partials/                        # Modular configuration pieces
 │   ├── 📂 shell/                        # Shell configurations
 │   │   ├── 📄 core.sh.tmpl             # Basic shell settings
 │   │   ├── 📄 aliases.sh.tmpl          # Smart aliases
@@ -120,7 +120,7 @@ dotfiles/
 - [ ] 🧪 Add basic tool detection templates
 
 #### 1.2 Basic Modularization
-- [ ] 📂 Create `_partials/` directory structure
+- [ ] 📂 Create `templates/partials/` directory structure
 - [ ] 🔧 Split `dot_zshrc.tmpl` into modular pieces
 - [ ] 🔍 Implement `lookPath` checks in existing templates
 - [ ] 📋 Create basic health check script
@@ -145,7 +145,7 @@ dotfiles/
   - Minimal profile (git + tmux)
   - Developer profile (+ modern CLI tools)
   - Power user profile (everything)
-- [ ] 🎛️ Create profile-specific configurations in `_partials/profiles/`
+- [ ] 🎛️ Create profile-specific configurations in `templates/partials/profiles/`
 - [ ] 🤖 Add interactive profile selection to installer
 
 #### 2.2 Advanced Dependency Management
@@ -306,11 +306,11 @@ dotfiles/
 ```go-template
 {{/* Load platform-specific configuration */}}
 {{- if eq .chezmoi.os "linux" }}
-{{ include "_partials/platforms/linux.sh.tmpl" . }}
+{{ include "templates/partials/platforms/linux.sh.tmpl" . }}
 {{- else if eq .chezmoi.os "darwin" }}
-{{ include "_partials/platforms/macos.sh.tmpl" . }}
+{{ include "templates/partials/platforms/macos.sh.tmpl" . }}
 {{- else if eq .chezmoi.os "windows" }}
-{{ include "_partials/platforms/windows.sh.tmpl" . }}
+{{ include "templates/partials/platforms/windows.sh.tmpl" . }}
 {{- end }}
 ```
 

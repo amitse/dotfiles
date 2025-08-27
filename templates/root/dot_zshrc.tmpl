@@ -7,16 +7,16 @@
 
 # Load shell configuration modules
 {{- /* Core shell configuration - history, options, key bindings */ -}}
-{{ include "_partials/shell/core.sh.tmpl" . }}
+{{ include "templates/partials/shell/core.sh.tmpl" . }}
 
 {{- /* Environment variables and exports */ -}}
-{{ include "_partials/shell/exports.sh.tmpl" . }}
+{{ include "templates/partials/shell/exports.sh.tmpl" . }}
 
 {{- /* PATH management */ -}}
-{{ include "_partials/shell/paths.sh.tmpl" . }}
+{{ include "templates/partials/shell/paths.sh.tmpl" . }}
 
 {{- /* Utility functions */ -}}
-{{ include "_partials/shell/functions.sh.tmpl" . }}
+{{ include "templates/partials/shell/functions.sh.tmpl" . }}
 
 # Zsh-specific configuration
 setopt SHARE_HISTORY          # Share history between sessions
