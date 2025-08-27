@@ -1,0 +1,92 @@
+{{/* Tool availability and version checking functions */}}
+
+{{/* Check if a tool is available and return info about it */}}
+{{- define "tool-info" -}}
+{{- $tool := . -}}
+{{- if lookPath $tool -}}
+{{- $version := "" -}}
+{{- if eq $tool "fzf" -}}
+{{- $version = output $tool "--version" | regexFind "\\d+\\.\\d+\\.\\d+" -}}
+{{- else if eq $tool "git" -}}
+{{- $version = output $tool "--version" | regexFind "\\d+\\.\\d+\\.\\d+" -}}
+{{- else if eq $tool "tmux" -}}
+{{- $version = output $tool "-V" | regexFind "\\d+\\.\\d+" -}}
+{{- else if eq $tool "rg" -}}
+{{- $version = output $tool "--version" | regexFind "\\d+\\.\\d+\\.\\d+" -}}
+{{- else if eq $tool "bat" -}}
+{{- $version = output $tool "--version" | regexFind "\\d+\\.\\d+\\.\\d+" -}}
+{{- else -}}
+{{- $version = "unknown" -}}
+{{- end -}}
+{{- dict "available" true "version" $version "path" (lookPath $tool) -}}
+{{- else -}}
+{{- dict "available" false "version" "" "path" "" -}}
+{{- end -}}
+{{- end -}}
+
+{{/* Check if tool meets minimum version requirement */}}
+{{- define "tool-version-ok" -}}
+{{- $data := index . 0 -}}
+{{- $tool := index . 1 -}}
+{{- $minVersion := index . 2 -}}
+{{- $toolInfo := include "tool-info" $tool | fromJson -}}
+{{- if and $toolInfo.available (ne $toolInfo.version "unknown") -}}
+{{- semverCompare (printf ">=%s" $minVersion) $toolInfo.version -}}
+{{- else if $toolInfo.available -}}
+{{- true -}}
+{{- else -}}
+{{- false -}}
+{{- end -}}
+{{- end -}}
+
+{{/* Get the best available alternative for a tool */}}
+{{- define "tool-alternative" -}}
+{{- $tool := . -}}
+{{- if eq $tool "ls" -}}
+{{- if lookPath "exa" -}}exa{{- else if lookPath "eza" -}}eza{{- else -}}ls{{- end -}}
+{{- else if eq $tool "cat" -}}
+{{- if lookPath "bat" -}}bat{{- else if lookPath "batcat" -}}batcat{{- else -}}cat{{- end -}}
+{{- else if eq $tool "grep" -}}
+{{- if lookPath "rg" -}}rg{{- else -}}grep{{- end -}}
+{{- else if eq $tool "find" -}}
+{{- if lookPath "fd" -}}fd{{- else -}}find{{- end -}}
+{{- else -}}
+{{- $tool -}}
+{{- end -}}
+{{- end -}}
+
+{{/* Check if any of the tools in a list are available */}}
+{{- define "any-tool-available" -}}
+{{- $tools := . -}}
+{{- range $tools -}}
+{{- if lookPath . -}}
+{{- . -}}
+{{- break -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/* Generate tool installation command for current platform */}}
+{{- define "install-command" -}}
+{{- $tool := . -}}
+{{- $pm := include "package-manager" -}}
+{{- if eq $pm "apt" -}}
+sudo apt install -y {{ $tool }}
+{{- else if eq $pm "yum" -}}
+sudo yum install -y {{ $tool }}
+{{- else if eq $pm "dnf" -}}
+sudo dnf install -y {{ $tool }}
+{{- else if eq $pm "pacman" -}}
+sudo pacman -S --noconfirm {{ $tool }}
+{{- else if eq $pm "brew" -}}
+brew install {{ $tool }}
+{{- else if eq $pm "winget" -}}
+winget install {{ $tool }}
+{{- else if eq $pm "scoop" -}}
+scoop install {{ $tool }}
+{{- else if eq $pm "choco" -}}
+choco install {{ $tool }} -y
+{{- else -}}
+# No package manager detected for {{ $tool }}
+{{- end -}}
+{{- end -}}

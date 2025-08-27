@@ -1,0 +1,328 @@
+# Shell Exports Configuration
+# Environment variables and exports for all shells
+
+{{- /* Development environment paths */ -}}
+{{- if .paths.workspace }}
+export WORKSPACE="{{ .paths.workspace }}"
+{{- end }}
+
+{{- if .paths.projects }}
+export PROJECTS="{{ .paths.projects }}"
+{{- end }}
+
+{{- if .paths.dotfiles }}
+export DOTFILES="{{ .paths.dotfiles }}"
+{{- end }}
+
+{{- /* XDG Base Directory Specification */ -}}
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+
+{{- /* History configuration */ -}}
+export HISTSIZE=50000
+export SAVEHIST=50000
+export HISTCONTROL=ignoreboth:erasedups
+export HISTIGNORE="ls:cd:cd -:pwd:exit:date:* --help:history:clear"
+
+{{- /* Shell behavior */ -}}
+export SHELL_SESSION_HISTORY=0  # Disable session history on macOS
+
+{{- /* Development tools configuration */ -}}
+{{- if .editor.default }}
+export EDITOR="{{ .editor.default }}"
+export VISUAL="{{ .editor.default }}"
+{{- else }}
+# Auto-detect best available editor
+{{- if lookPath "code" }}
+export EDITOR="code --wait"
+export VISUAL="code --wait"
+{{- else if lookPath "vim" }}
+export EDITOR="vim"
+export VISUAL="vim"
+{{- else if lookPath "nano" }}
+export EDITOR="nano"
+export VISUAL="nano"
+{{- else }}
+export EDITOR="vi"
+export VISUAL="vi"
+{{- end }}
+{{- end }}
+
+{{- /* Pager configuration */ -}}
+{{- if lookPath "bat" }}
+export PAGER="bat"
+export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+export BAT_THEME="{{ .tools.bat.theme | default "TwoDark" }}"
+export BAT_STYLE="numbers,changes,header"
+{{- else if lookPath "less" }}
+export PAGER="less -R"
+export MANPAGER="less -R"
+export LESS="-i -N -w -z-4 -g -e -M -X -F -R -P=%t?f%f :stdin .?pb%pb\%:?lbLine %lb:?bbByte %bb:-..."
+{{- else }}
+export PAGER="more"
+export MANPAGER="more"
+{{- end }}
+
+{{- /* Language and locale */ -}}
+export LANG="${LANG:-en_US.UTF-8}"
+export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+export LC_CTYPE="${LC_CTYPE:-en_US.UTF-8}"
+
+{{- /* Color support */ -}}
+export CLICOLOR=1
+export LSCOLORS="ExGxBxDxCxEgEdxbxgxcxd"
+export GREP_COLOR='1;32'
+export GREP_OPTIONS='--color=auto'
+
+{{- /* Terminal configuration */ -}}
+export TERM="${TERM:-xterm-256color}"
+export COLORTERM="${COLORTERM:-truecolor}"
+
+{{- /* Development language environments */ -}}
+
+{{- /* Node.js configuration */ -}}
+{{- if lookPath "node" }}
+export NODE_ENV="${NODE_ENV:-development}"
+{{- if .tools.node.version }}
+export NODE_VERSION="{{ .tools.node.version }}"
+{{- end }}
+{{- end }}
+
+{{- /* Python configuration */ -}}
+{{- if lookPath "python" }}
+export PYTHONDONTWRITEBYTECODE=1
+export PYTHONUNBUFFERED=1
+export PIP_REQUIRE_VIRTUALENV=true
+{{- if .tools.python.version }}
+export PYTHON_VERSION="{{ .tools.python.version }}"
+{{- end }}
+{{- end }}
+
+{{- /* Go configuration */ -}}
+{{- if lookPath "go" }}
+{{- if .tools.go.path }}
+export GOPATH="{{ .tools.go.path }}"
+{{- else }}
+export GOPATH="$HOME/go"
+{{- end }}
+export GO111MODULE=on
+export GOPROXY=https://proxy.golang.org,direct
+export GOSUMDB=sum.golang.org
+{{- end }}
+
+{{- /* Rust configuration */ -}}
+{{- if lookPath "cargo" }}
+export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
+export RUSTUP_HOME="${RUSTUP_HOME:-$HOME/.rustup}"
+{{- end }}
+
+{{- /* Java configuration */ -}}
+{{- if .tools.java.home }}
+export JAVA_HOME="{{ .tools.java.home }}"
+{{- else if eq .chezmoi.os "darwin" }}
+# macOS Java detection
+if [[ -x /usr/libexec/java_home ]]; then
+    export JAVA_HOME="$(/usr/libexec/java_home)"
+fi
+{{- end }}
+
+{{- /* Docker configuration */ -}}
+{{- if lookPath "docker" }}
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
+{{- if .tools.docker.host }}
+export DOCKER_HOST="{{ .tools.docker.host }}"
+{{- end }}
+{{- end }}
+
+{{- /* Kubernetes configuration */ -}}
+{{- if lookPath "kubectl" }}
+export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/config}"
+export KUBE_EDITOR="${EDITOR}"
+{{- end }}
+
+{{- /* FZF configuration */ -}}
+{{- if lookPath "fzf" }}
+export FZF_DEFAULT_OPTS="--height 40% --layout=reverse --border --info=inline --color=16"
+
+{{- if lookPath "fd" }}
+export FZF_DEFAULT_COMMAND="fd --type f --hidden --follow --exclude .git"
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+export FZF_ALT_C_COMMAND="fd --type d --hidden --follow --exclude .git"
+{{- else if lookPath "rg" }}
+export FZF_DEFAULT_COMMAND="rg --files --hidden --follow --glob '!.git/*'"
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+{{- else }}
+export FZF_DEFAULT_COMMAND="find . -type f -not -path '*/\.*'"
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+{{- end }}
+
+# FZF preview options
+export FZF_CTRL_T_OPTS="--preview '(bat --style=numbers --color=always {} 2> /dev/null || cat {} || tree -C {}) 2> /dev/null | head -200'"
+export FZF_ALT_C_OPTS="--preview 'tree -C {} | head -200'"
+{{- end }}
+
+{{- /* Ripgrep configuration */ -}}
+{{- if lookPath "rg" }}
+export RIPGREP_CONFIG_PATH="$XDG_CONFIG_HOME/ripgrep/config"
+{{- end }}
+
+{{- /* Git configuration */ -}}
+{{- if lookPath "git" }}
+export GIT_EDITOR="${EDITOR}"
+{{- if .git.user.name }}
+export GIT_AUTHOR_NAME="{{ .git.user.name }}"
+export GIT_COMMITTER_NAME="{{ .git.user.name }}"
+{{- end }}
+{{- if .git.user.email }}
+export GIT_AUTHOR_EMAIL="{{ .git.user.email }}"
+export GIT_COMMITTER_EMAIL="{{ .git.user.email }}"
+{{- end }}
+{{- end }}
+
+{{- /* SSH configuration */ -}}
+export SSH_KEY_PATH="$HOME/.ssh/id_rsa"
+
+{{- /* GPG configuration */ -}}
+{{- if lookPath "gpg" }}
+export GPG_TTY=$(tty)
+{{- end }}
+
+{{- /* Browser configuration */ -}}
+{{- if .browser.default }}
+export BROWSER="{{ .browser.default }}"
+{{- else if eq .chezmoi.os "darwin" }}
+export BROWSER="open"
+{{- else if eq .chezmoi.os "linux" }}
+{{- if lookPath "firefox" }}
+export BROWSER="firefox"
+{{- else if lookPath "chromium" }}
+export BROWSER="chromium"
+{{- else if lookPath "google-chrome" }}
+export BROWSER="google-chrome"
+{{- end }}
+{{- end }}
+
+{{- /* Database configuration */ -}}
+{{- if .database.mysql.host }}
+export MYSQL_HOST="{{ .database.mysql.host }}"
+{{- end }}
+{{- if .database.postgres.host }}
+export POSTGRES_HOST="{{ .database.postgres.host }}"
+{{- end }}
+
+{{- /* Cloud provider configuration */ -}}
+{{- if .cloud.aws.region }}
+export AWS_DEFAULT_REGION="{{ .cloud.aws.region }}"
+{{- end }}
+{{- if .cloud.azure.subscription }}
+export AZURE_SUBSCRIPTION_ID="{{ .cloud.azure.subscription }}"
+{{- end }}
+{{- if .cloud.gcp.project }}
+export GOOGLE_CLOUD_PROJECT="{{ .cloud.gcp.project }}"
+{{- end }}
+
+{{- /* Performance and debugging */ -}}
+export TIMEFMT=$'\nreal\t%E\nuser\t%U\nsys\t%S\ncpu\t%P'
+
+{{- /* Security */ -}}
+export HISTFILESIZE=50000
+export HISTTIMEFORMAT="%Y-%m-%d %H:%M:%S "
+
+{{- /* Tmux configuration */ -}}
+{{- if lookPath "tmux" }}
+export TMUX_PLUGIN_MANAGER_PATH="$XDG_DATA_HOME/tmux/plugins"
+{{- end }}
+
+{{- /* Tool-specific exports based on profile */ -}}
+{{- if eq .profile "developer" }}
+# Developer profile specific exports
+export NODE_ENV="development"
+export RAILS_ENV="development"
+export FLASK_ENV="development"
+export DEBUG=1
+{{- else if eq .profile "power-user" }}
+# Power user profile specific exports
+export ANSIBLE_HOST_KEY_CHECKING=False
+export ANSIBLE_NOCOWS=1
+export DOCKER_BUILDKIT=1
+export BUILDX_EXPERIMENTAL=1
+{{- end }}
+
+{{- /* Custom user exports */ -}}
+{{- range $key, $value := .exports }}
+export {{ $key }}="{{ $value }}"
+{{- end }}
+
+{{- /* OS-specific exports */ -}}
+{{- if eq .chezmoi.os "darwin" }}
+# macOS specific exports
+export HOMEBREW_NO_ANALYTICS=1
+export HOMEBREW_NO_INSECURE_REDIRECT=1
+export HOMEBREW_CASK_OPTS="--require-sha"
+{{- if lookPath "brew" }}
+# Homebrew path detection
+if [[ -d "/opt/homebrew" ]]; then
+    export HOMEBREW_PREFIX="/opt/homebrew"
+elif [[ -d "/usr/local/Homebrew" ]]; then
+    export HOMEBREW_PREFIX="/usr/local"
+fi
+{{- end }}
+{{- end }}
+
+{{- if eq .chezmoi.os "linux" }}
+# Linux specific exports
+export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-GNOME}"
+export XDG_SESSION_TYPE="${XDG_SESSION_TYPE:-x11}"
+{{- end }}
+
+{{- if eq .chezmoi.os "windows" }}
+# Windows specific exports (PowerShell)
+# These would be set in PowerShell profile instead
+{{- end }}
+
+# Export function to show all custom exports
+show_exports() {
+    echo "🌍 Environment Variables"
+    echo "======================="
+    echo ""
+    echo "📁 Paths:"
+    echo "  WORKSPACE:    ${WORKSPACE:-Not set}"
+    echo "  PROJECTS:     ${PROJECTS:-Not set}"
+    echo "  DOTFILES:     ${DOTFILES:-Not set}"
+    echo ""
+    echo "🔧 Development:"
+    echo "  EDITOR:       $EDITOR"
+    echo "  PAGER:        $PAGER"
+    echo "  BROWSER:      ${BROWSER:-Not set}"
+    echo ""
+    echo "🗂️  XDG Directories:"
+    echo "  CONFIG_HOME:  $XDG_CONFIG_HOME"
+    echo "  DATA_HOME:    $XDG_DATA_HOME"
+    echo "  CACHE_HOME:   $XDG_CACHE_HOME"
+    echo "  STATE_HOME:   $XDG_STATE_HOME"
+    echo ""
+    echo "🌐 Language/Locale:"
+    echo "  LANG:         $LANG"
+    echo "  LC_ALL:       $LC_ALL"
+    echo ""
+    {{- if lookPath "node" }}
+    echo "🟢 Node.js:"
+    echo "  NODE_ENV:     ${NODE_ENV:-Not set}"
+    echo ""
+    {{- end }}
+    {{- if lookPath "python" }}
+    echo "🐍 Python:"
+    echo "  PYTHONDONTWRITEBYTECODE: $PYTHONDONTWRITEBYTECODE"
+    echo "  PIP_REQUIRE_VIRTUALENV:  $PIP_REQUIRE_VIRTUALENV"
+    echo ""
+    {{- end }}
+    {{- if lookPath "go" }}
+    echo "🐹 Go:"
+    echo "  GOPATH:       $GOPATH"
+    echo "  GO111MODULE:  $GO111MODULE"
+    echo ""
+    {{- end }}
+}

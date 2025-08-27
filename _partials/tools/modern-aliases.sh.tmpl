@@ -1,0 +1,230 @@
+# Modern CLI tool aliases and integrations
+# Smart aliases that adapt to available tools
+
+{{- $ls := include "tool-alternative" "ls" }}
+{{- $cat := include "tool-alternative" "cat" }}
+{{- $grep := include "tool-alternative" "grep" }}
+{{- $find := include "tool-alternative" "find" }}
+
+# Enhanced directory listing
+{{- if lookPath "exa" }}
+alias ls='exa'
+alias ll='exa -l --git'
+alias la='exa -la --git'
+alias tree='exa --tree'
+alias lt='exa --tree --level=2'
+{{- else if lookPath "eza" }}
+alias ls='eza'
+alias ll='eza -l --git'
+alias la='eza -la --git'
+alias tree='eza --tree'
+alias lt='eza --tree --level=2'
+{{- else }}
+# Traditional ls aliases as fallback
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+{{- end }}
+
+# Enhanced file viewing
+{{- if lookPath "bat" }}
+alias cat='bat'
+alias less='bat'
+# bat with plain output (no decorations)
+alias catp='bat --style=plain'
+{{- else if lookPath "batcat" }}
+alias cat='batcat'
+alias less='batcat'
+alias catp='batcat --style=plain'
+{{- end }}
+
+# Enhanced search
+{{- if lookPath "rg" }}
+alias grep='rg'
+# Case-insensitive search
+alias rgi='rg -i'
+# Search in specific file types
+alias rgpy='rg --type py'
+alias rgjs='rg --type js'
+alias rgmd='rg --type md'
+# Search with context
+alias rgc='rg -C 3'
+{{- end }}
+
+# Enhanced find
+{{- if lookPath "fd" }}
+alias find='fd'
+# Find files with specific extensions
+alias findf='fd --type f'
+alias findd='fd --type d'
+{{- end }}
+
+# File operations with progress (if available)
+{{- if lookPath "rsync" }}
+alias cp='rsync -ah --progress'
+{{- end }}
+
+# Modern replacements for common tools
+{{- if lookPath "dust" }}
+alias du='dust'
+{{- end }}
+
+{{- if lookPath "bottom" }}
+alias top='btm'
+alias htop='btm'
+{{- else if lookPath "htop" }}
+alias top='htop'
+{{- end }}
+
+{{- if lookPath "procs" }}
+alias ps='procs'
+{{- end }}
+
+# Git aliases (if git is available)
+{{- if lookPath "git" }}
+alias g='git'
+alias ga='git add'
+alias gaa='git add --all'
+alias gc='git commit'
+alias gcm='git commit -m'
+alias gco='git checkout'
+alias gcb='git checkout -b'
+alias gd='git diff'
+alias gdc='git diff --cached'
+alias gl='git log --oneline --graph --decorate'
+alias gla='git log --oneline --graph --decorate --all'
+alias gp='git push'
+alias gpl='git pull'
+alias gs='git status'
+alias gss='git status -s'
+alias gb='git branch'
+alias gba='git branch -a'
+alias gm='git merge'
+alias gr='git remote -v'
+alias gst='git stash'
+alias gsp='git stash pop'
+
+# Advanced git aliases
+alias glog='git log --graph --pretty=format:"%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit'
+alias gcount='git shortlog -sn'
+alias gclean='git branch --merged | grep -v "\*\|main\|master\|develop" | xargs -n 1 git branch -d'
+
+# Quick commit function
+gac() {
+    git add -A && git commit -m "$1"
+}
+{{- end }}
+
+{{- if lookPath "gh" }}
+# GitHub CLI shortcuts
+alias prs='gh pr list'
+alias pr='gh pr view'
+alias prc='gh pr create'
+alias issues='gh issue list'
+alias issue='gh issue view'
+alias repos='gh repo list'
+alias gists='gh gist list'
+{{- end }}
+
+{{- if lookPath "docker" }}
+# Docker aliases
+alias d='docker'
+alias dc='docker-compose'
+alias dps='docker ps'
+alias di='docker images'
+alias drm='docker rm'
+alias drmi='docker rmi'
+alias dex='docker exec -it'
+alias dlogs='docker logs'
+
+# Docker cleanup
+alias dclean='docker system prune -f'
+alias dcleanall='docker system prune -a -f'
+{{- end }}
+
+{{- if lookPath "kubectl" }}
+# Kubernetes aliases
+alias k='kubectl'
+alias kgp='kubectl get pods'
+alias kgs='kubectl get services'
+alias kgd='kubectl get deployments'
+alias kaf='kubectl apply -f'
+alias kdel='kubectl delete'
+alias klogs='kubectl logs'
+alias kexec='kubectl exec -it'
+{{- end }}
+
+# Development shortcuts
+{{- if lookPath "npm" }}
+alias ni='npm install'
+alias ns='npm start'
+alias nt='npm test'
+alias nb='npm run build'
+alias nrd='npm run dev'
+{{- end }}
+
+{{- if lookPath "yarn" }}
+alias y='yarn'
+alias ya='yarn add'
+alias ys='yarn start'
+alias yt='yarn test'
+alias yb='yarn build'
+alias yd='yarn dev'
+{{- end }}
+
+{{- if lookPath "python" }}
+alias py='python'
+alias pip='python -m pip'
+alias venv='python -m venv'
+{{- else if lookPath "python3" }}
+alias py='python3'
+alias pip='python3 -m pip'
+alias venv='python3 -m venv'
+{{- end }}
+
+# Network and system monitoring
+{{- if not (eq .chezmoi.os "windows") }}
+alias ports='netstat -tuln'
+alias listening='lsof -i'
+{{- end }}
+
+# Clipboard integration
+{{- $clipcopy := include "clipboard-copy" . }}
+{{- $clippaste := include "clipboard-paste" . }}
+{{- if ne $clipcopy "cat" }}
+alias pbcopy='{{ $clipcopy }}'
+{{- if ne .chezmoi.os "windows" }}
+alias pbpaste='{{ $clippaste }}'
+{{- end }}
+
+# Copy current directory to clipboard
+alias pwd2clip='pwd | {{ $clipcopy }}'
+{{- end }}
+
+# Quick edit functions
+{{- if ne .editor.default "vim" }}
+alias e='${EDITOR}'
+{{- end }}
+alias v='vim'
+
+# Open in GUI editor if available
+{{- if lookPath .editor.gui }}
+alias gui='{{ .editor.gui }}'
+{{- end }}
+
+# System information
+sysinfo() {
+    echo "=== System Information ==="
+    echo "OS: $(uname -s)"
+    echo "Kernel: $(uname -r)"
+    echo "Architecture: $(uname -m)"
+    {{- if not (eq .chezmoi.os "windows") }}
+    echo "Hostname: $(hostname)"
+    echo "Uptime: $(uptime)"
+    echo "Memory: $(free -h 2>/dev/null | grep '^Mem:' || echo 'N/A')"
+    echo "Disk: $(df -h / 2>/dev/null | tail -1 || echo 'N/A')"
+    {{- end }}
+    echo "Shell: $SHELL"
+    echo "User: $USER"
+    echo "==========================="
+}

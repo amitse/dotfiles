@@ -1,24 +1,29 @@
 # ~/.zshrc - Zsh configuration
 # This file is managed by chezmoi - edit the template
+# Modular configuration using _partials/shell components
 
 # Only run for interactive shells
 [[ $- != *i* ]] && return
 
-# Set default editor
-export EDITOR="${EDITOR:-vim}"
-export VISUAL="${VISUAL:-$EDITOR}"
+# Load shell configuration modules
+{{- /* Core shell configuration - history, options, key bindings */ -}}
+{{ include "_partials/shell/core.sh.tmpl" . }}
 
-# History configuration
-HISTFILE=~/.zsh_history
-HISTSIZE=10000
-SAVEHIST=10000
+{{- /* Environment variables and exports */ -}}
+{{ include "_partials/shell/exports.sh.tmpl" . }}
+
+{{- /* PATH management */ -}}
+{{ include "_partials/shell/paths.sh.tmpl" . }}
+
+{{- /* Utility functions */ -}}
+{{ include "_partials/shell/functions.sh.tmpl" . }}
+
+# Zsh-specific configuration
 setopt SHARE_HISTORY          # Share history between sessions
 setopt HIST_VERIFY            # Show command before executing from history
 setopt HIST_IGNORE_DUPS       # Ignore duplicate commands
 setopt HIST_IGNORE_SPACE      # Ignore commands starting with space
 setopt HIST_REDUCE_BLANKS     # Remove extra blanks from commands
-
-# Directory navigation
 setopt AUTO_CD                # Auto cd when typing directory name
 setopt AUTO_PUSHD             # Push directories to stack
 setopt PUSHD_IGNORE_DUPS      # Ignore duplicate directories in stack
@@ -60,11 +65,6 @@ if command -v fzf >/dev/null 2>&1; then
             source /usr/share/fzf/completion.zsh
         fi
     }
-    
-    # Environment variables
-    export FZF_DEFAULT_COMMAND='rg --files --hidden --follow --glob "!.git/*"' 2>/dev/null || export FZF_DEFAULT_COMMAND='find . -type f'
-    export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-    export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border --bind=ctrl-u:preview-half-page-up,ctrl-d:preview-half-page-down'
 fi
 {{- end }}
 
@@ -94,7 +94,7 @@ PROMPT='%F{cyan}%n@%m%f:%F{blue}%~%f%F{red}${vcs_info_msg_0_}%f$ '
 PROMPT='%F{yellow}%n@%m%f:%F{blue}%~%f%F{red}${vcs_info_msg_0_}%f$ '
 {{- end }}
 
-# Source aliases and functions
+# Source additional configuration files
 if [ -f ~/.config/shell/aliases.sh ]; then
     source ~/.config/shell/aliases.sh
 fi
@@ -107,36 +107,30 @@ if [ -f ~/.zsh_functions ]; then
     source ~/.zsh_functions
 fi
 
-# OS-specific configurations
-{{- if eq .chezmoi.os "linux" }}
-# Linux-specific settings
-if [ -f /etc/zsh/zshrc ]; then
-    source /etc/zsh/zshrc
-fi
-
-# Add local bin to PATH if it exists
-if [ -d "$HOME/.local/bin" ]; then
-    export PATH="$HOME/.local/bin:$PATH"
-fi
-
-# Cargo/Rust binaries
-if [ -d "$HOME/.cargo/bin" ]; then
-    export PATH="$HOME/.cargo/bin:$PATH"
-fi
-{{- else if eq .chezmoi.os "darwin" }}
-# macOS-specific settings
-# Homebrew
-if [ -d "/opt/homebrew/bin" ]; then
-    export PATH="/opt/homebrew/bin:$PATH"
-fi
-
-# GNU tools (if installed via Homebrew)
-if [ -d "/opt/homebrew/opt/coreutils/libexec/gnubin" ]; then
-    export PATH="/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH"
-fi
-{{- end }}
-
 # Load local customizations if they exist
 if [ -f ~/.zshrc.local ]; then
     source ~/.zshrc.local
 fi
+
+# Welcome message (optional)
+{{- if eq .profile "developer" }}
+# Developer profile welcome
+if [[ -o interactive ]]; then
+    echo "🚀 Developer profile loaded"
+    {{- if lookPath "git" }}
+    echo "Git: $(git --version 2>/dev/null || echo 'not found')"
+    {{- end }}
+    {{- if lookPath "node" }}
+    echo "Node: $(node --version 2>/dev/null || echo 'not found')"
+    {{- end }}
+    {{- if lookPath "python" }}
+    echo "Python: $(python3 --version 2>/dev/null || echo 'not found')"
+    {{- end }}
+fi
+{{- else if eq .profile "power-user" }}
+# Power user profile welcome
+if [[ -o interactive ]]; then
+    echo "⚡ Power user profile loaded"
+    echo "Type 'functions_help' for available functions"
+fi
+{{- end }}

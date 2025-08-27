@@ -1,0 +1,284 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run weekly to catch drift
+    - cron: '0 0 * * 0'
+
+jobs:
+  lint:
+    name: Lint and Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Lint shell scripts
+        run: |
+          echo "🔍 Linting shell scripts..."
+          find . -name "*.sh" -not -path "./.git/*" -not -path "./legacy/*" | xargs shellcheck --severity=warning
+          
+      - name: Lint install scripts specifically
+        run: |
+          echo "🔍 Linting install scripts..."
+          shellcheck install.sh
+          shellcheck scripts/health-check.sh
+
+      - name: Check script executability
+        run: |
+          echo "🔧 Checking script permissions..."
+          test -x install.sh || (echo "❌ install.sh is not executable" && exit 1)
+          test -x scripts/health-check.sh || (echo "❌ health-check.sh is not executable" && exit 1)
+          echo "✅ All scripts are executable"
+
+      - name: Validate Markdown files
+        uses: DavidAnson/markdownlint-action@v1
+        with:
+          files: '**/*.md'
+          ignore: 'legacy/'
+          config: '.markdownlint.yml'
+
+  template-validation:
+    name: Template Validation
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        profile: [minimal, developer, power-user]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install chezmoi
+        run: |
+          curl -sfL https://git.io/chezmoi | sh
+          sudo mv ./bin/chezmoi /usr/local/bin/
+
+      - name: Validate templates render without errors
+        run: |
+          echo "🔧 Testing template rendering for ${{ matrix.profile }} profile..."
+          
+          # Create a temporary test directory
+          TEST_DIR=$(mktemp -d)
+          cd "$TEST_DIR"
+          
+          # Initialize chezmoi with test data
+          cat > chezmoi.toml << EOF
+          [data]
+              profile = "${{ matrix.profile }}"
+              
+              [data.user]
+                  name = "Test User"
+                  email = "test@example.com"
+              
+              [data.secrets]
+                  backend = "env"
+              
+              [data.features]
+                  modern_cli = true
+                  developer_tools = true
+                  advanced_git = true
+                  powerline_prompt = false
+                  github_integration = true
+          EOF
+          
+          # Test template rendering
+          chezmoi init --config ./chezmoi.toml "$GITHUB_WORKSPACE"
+          
+          # Attempt to apply (dry run)
+          chezmoi apply --dry-run --verbose
+          
+          echo "✅ Templates render successfully for ${{ matrix.profile }} profile"
+
+  cross-platform-test:
+    name: Cross-Platform Install Test
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        profile: [minimal, developer]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test install script (non-interactive)
+        run: |
+          echo "🧪 Testing install script on ${{ matrix.os }} with ${{ matrix.profile }} profile..."
+          
+          # Make the script executable
+          chmod +x install.sh
+          
+          # Run in non-interactive mode
+          if [[ "${{ matrix.profile }}" == "minimal" ]]; then
+            ./install.sh --non-interactive 1 "Test User" "test@example.com"
+          else
+            ./install.sh --non-interactive 2 "Test User" "test@example.com"
+          fi
+          
+          # Verify chezmoi was installed
+          command -v chezmoi || (echo "❌ chezmoi not found in PATH" && exit 1)
+          
+          # Verify dotfiles were applied
+          chezmoi status
+          
+          echo "✅ Install script works on ${{ matrix.os }}"
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  documentation-check:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for broken links in documentation
+        uses: lycheeverse/lychee-action@v1
+        with:
+          files: '**/*.md'
+          args: '--exclude-path ./legacy --exclude-mail'
+
+      - name: Verify all documentation files exist
+        run: |
+          echo "📚 Checking documentation completeness..."
+          
+          # Check that referenced docs exist
+          missing_docs=""
+          
+          if [[ ! -f "docs/GETTING-STARTED.md" ]]; then
+            missing_docs="$missing_docs docs/GETTING-STARTED.md"
+          fi
+          
+          if [[ ! -f "docs/PROFILES.md" ]]; then
+            missing_docs="$missing_docs docs/PROFILES.md"
+          fi
+          
+          if [[ ! -f "PLAN.md" ]]; then
+            missing_docs="$missing_docs PLAN.md"
+          fi
+          
+          if [[ -n "$missing_docs" ]]; then
+            echo "❌ Missing documentation files:$missing_docs"
+            exit 1
+          fi
+          
+          echo "✅ All documentation files exist"
+
+  health-check:
+    name: Health Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install chezmoi
+        run: |
+          curl -sfL https://git.io/chezmoi | sh
+          sudo mv ./bin/chezmoi /usr/local/bin/
+
+      - name: Run health check script
+        run: |
+          chmod +x scripts/health-check.sh
+          ./scripts/health-check.sh
+
+      - name: Validate repository structure
+        run: |
+          echo "🏗️ Validating repository structure..."
+          
+          # Check essential directories exist
+          required_dirs=("_partials" "docs" "scripts" ".chezmoi")
+          for dir in "${required_dirs[@]}"; do
+            if [[ ! -d "$dir" ]]; then
+              echo "❌ Required directory missing: $dir"
+              exit 1
+            fi
+          done
+          
+          # Check essential files exist
+          required_files=("install.sh" "install.ps1" "PLAN.md" "README.md")
+          for file in "${required_files[@]}"; do
+            if [[ ! -f "$file" ]]; then
+              echo "❌ Required file missing: $file"
+              exit 1
+            fi
+          done
+          
+          echo "✅ Repository structure is valid"
+
+  release-readiness:
+    name: Release Readiness
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: [lint, template-validation, cross-platform-test, documentation-check, health-check]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check if version should be bumped
+        run: |
+          echo "🏷️ Checking release readiness..."
+          
+          # Check if there are significant changes since last tag
+          if git tag | grep -q .; then
+            LAST_TAG=$(git tag --sort=-version:refname | head -n1)
+            COMMITS_SINCE_TAG=$(git rev-list ${LAST_TAG}..HEAD --count)
+            
+            if [[ $COMMITS_SINCE_TAG -gt 5 ]]; then
+              echo "📈 $COMMITS_SINCE_TAG commits since last tag ($LAST_TAG)"
+              echo "Consider creating a new release"
+            else
+              echo "✅ Few changes since last tag, no release needed"
+            fi
+          else
+            echo "🆕 No tags found, consider creating initial release"
+          fi
+
+      - name: Generate release notes draft
+        if: github.event_name == 'push'
+        run: |
+          echo "📝 Generating release notes..."
+          
+          # Get commits since last tag (or last 10 if no tags)
+          if git tag | grep -q .; then
+            LAST_TAG=$(git tag --sort=-version:refname | head -n1)
+            git log ${LAST_TAG}..HEAD --oneline --pretty=format:"- %s" > RELEASE_NOTES.md
+          else
+            git log -10 --oneline --pretty=format:"- %s" > RELEASE_NOTES.md
+          fi
+          
+          echo "📋 Draft release notes:"
+          cat RELEASE_NOTES.md
+
+      - name: Upload release notes as artifact
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: RELEASE_NOTES.md

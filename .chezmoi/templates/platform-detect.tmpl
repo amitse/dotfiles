@@ -1,0 +1,74 @@
+{{/* Platform detection helper functions */}}
+
+{{/* Check if we're on a specific OS */}}
+{{- define "is-linux" -}}
+{{- eq .chezmoi.os "linux" -}}
+{{- end -}}
+
+{{- define "is-macos" -}}
+{{- eq .chezmoi.os "darwin" -}}
+{{- end -}}
+
+{{- define "is-windows" -}}
+{{- eq .chezmoi.os "windows" -}}
+{{- end -}}
+
+{{/* Check if we're in WSL */}}
+{{- define "is-wsl" -}}
+{{- and (eq .chezmoi.os "linux") (env "WSL_DISTRO_NAME") -}}
+{{- end -}}
+
+{{/* Get the appropriate package manager */}}
+{{- define "package-manager" -}}
+{{- if lookPath "apt" -}}
+apt
+{{- else if lookPath "yum" -}}
+yum
+{{- else if lookPath "dnf" -}}
+dnf
+{{- else if lookPath "pacman" -}}
+pacman
+{{- else if lookPath "brew" -}}
+brew
+{{- else if lookPath "winget" -}}
+winget
+{{- else if lookPath "scoop" -}}
+scoop
+{{- else if lookPath "choco" -}}
+choco
+{{- else -}}
+none
+{{- end -}}
+{{- end -}}
+
+{{/* Get clipboard command for the platform */}}
+{{- define "clipboard-copy" -}}
+{{- if eq .chezmoi.os "windows" -}}
+clip.exe
+{{- else if eq .chezmoi.os "darwin" -}}
+pbcopy
+{{- else if lookPath "wl-copy" -}}
+wl-copy
+{{- else if lookPath "xclip" -}}
+xclip -selection clipboard
+{{- else if lookPath "xsel" -}}
+xsel --clipboard --input
+{{- else -}}
+cat
+{{- end -}}
+{{- end -}}
+
+{{/* Get clipboard paste command for the platform */}}
+{{- define "clipboard-paste" -}}
+{{- if eq .chezmoi.os "darwin" -}}
+pbpaste
+{{- else if lookPath "wl-paste" -}}
+wl-paste
+{{- else if lookPath "xclip" -}}
+xclip -selection clipboard -o
+{{- else if lookPath "xsel" -}}
+xsel --clipboard --output
+{{- else -}}
+echo "No clipboard available"
+{{- end -}}
+{{- end -}}

@@ -1,0 +1,375 @@
+# macOS Platform Configuration
+# macOS-specific settings, aliases, and functions
+
+{{- if eq .chezmoi.os "darwin" }}
+
+# macOS-specific environment variables
+export BROWSER="${BROWSER:-open}"
+
+# Homebrew setup
+{{- if lookPath "brew" }}
+# Homebrew path setup (for Apple Silicon and Intel Macs)
+if [[ -d "/opt/homebrew" ]]; then
+    export HOMEBREW_PREFIX="/opt/homebrew"
+elif [[ -d "/usr/local/Homebrew" ]]; then
+    export HOMEBREW_PREFIX="/usr/local"
+fi
+
+# Homebrew aliases
+alias brewup='brew update && brew upgrade && brew cleanup'
+alias brewinfo='brew info'
+alias brewsearch='brew search'
+alias brewinstall='brew install'
+alias brewuninstall='brew uninstall'
+alias brewlist='brew list'
+alias brewservices='brew services'
+alias brewdeps='brew deps --tree'
+
+# Cask shortcuts
+alias cask='brew install --cask'
+alias casklist='brew list --cask'
+alias caskinfo='brew info --cask'
+
+# Homebrew maintenance
+brew_maintenance() {
+    echo "🍺 Running Homebrew maintenance..."
+    brew update
+    brew upgrade
+    brew cleanup
+    brew doctor
+    echo "✅ Homebrew maintenance complete"
+}
+
+# Install essential development tools via Homebrew
+brew_dev_setup() {
+    echo "🔧 Installing development tools via Homebrew..."
+    brew install git curl wget tree jq bat ripgrep fd fzf
+    brew install --cask visual-studio-code
+    echo "✅ Development tools installed"
+}
+{{- end }}
+
+# Package management with multiple managers
+{{- if lookPath "port" }}
+# MacPorts
+alias portinstall='sudo port install'
+alias portsearch='port search'
+alias portupgrade='sudo port upgrade outdated'
+alias portlist='port installed'
+{{- end }}
+
+# System information
+alias sysinfo='system_profiler SPSoftwareDataType'
+alias hwinfo='system_profiler SPHardwareDataType'
+alias meminfo='vm_stat'
+alias cpuinfo='sysctl -n machdep.cpu.brand_string'
+
+# macOS-specific file operations
+alias ls='ls -G'
+alias ll='ls -alFG'
+alias la='ls -AG'
+alias l='ls -CFG'
+
+# Show/hide hidden files in Finder
+alias showfiles='defaults write com.apple.finder AppleShowAllFiles YES; killall Finder'
+alias hidefiles='defaults write com.apple.finder AppleShowAllFiles NO; killall Finder'
+
+# Quick Look
+alias ql='qlmanage -p'
+
+# Clipboard utilities
+alias pbcopy='pbcopy'
+alias pbpaste='pbpaste'
+alias clip='pbcopy'
+alias clipout='pbpaste'
+
+# Network utilities
+alias flushdns='sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder'
+alias localip="ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1'"
+
+# Application management
+alias appstore='mas'  # If mas is installed
+alias finder='open -a Finder'
+alias safari='open -a Safari'
+alias chrome='open -a "Google Chrome"'
+alias code='open -a "Visual Studio Code"'
+
+# System utilities
+alias cpu_usage='top -l 1 -s 0 | grep "CPU usage"'
+alias disk_usage='df -h'
+alias who_using_port='lsof -i'
+
+# macOS system settings
+macos_setup() {
+    echo "🍎 Configuring macOS settings..."
+    
+    # Show hidden files in Finder
+    defaults write com.apple.finder AppleShowAllFiles YES
+    
+    # Show file extensions
+    defaults write NSGlobalDomain AppleShowAllExtensions -bool true
+    
+    # Disable the "Are you sure you want to open this application?" dialog
+    defaults write com.apple.LaunchServices LSQuarantine -bool false
+    
+    # Enable tap to click
+    defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
+    
+    # Set fast key repeat
+    defaults write NSGlobalDomain KeyRepeat -int 2
+    defaults write NSGlobalDomain InitialKeyRepeat -int 15
+    
+    # Show battery percentage
+    defaults write com.apple.menuextra.battery ShowPercent YES
+    
+    # Restart affected applications
+    killall Finder
+    killall SystemUIServer
+    
+    echo "✅ macOS settings configured"
+    echo "ℹ️  Some changes may require a restart to take effect"
+}
+
+# Xcode and development tools
+{{- if lookPath "xcode-select" }}
+xcode_setup() {
+    echo "🔨 Setting up Xcode command line tools..."
+    xcode-select --install 2>/dev/null || echo "Xcode tools already installed"
+    echo "✅ Xcode setup complete"
+}
+
+xcode_reset() {
+    echo "🔄 Resetting Xcode command line tools..."
+    sudo xcode-select --reset
+    xcode-select --install
+    echo "✅ Xcode tools reset"
+}
+{{- end }}
+
+# Security and privacy
+{{- if lookPath "security" }}
+# Keychain utilities
+keychain_list() {
+    security list-keychains
+}
+
+keychain_unlock() {
+    security unlock-keychain login.keychain
+}
+
+# Certificate management
+cert_list() {
+    security find-certificate -a -p /System/Library/Keychains/SystemRootCertificates.keychain | grep "subject="
+}
+{{- end }}
+
+# Disk utilities
+disk_info() {
+    echo "💿 Disk Information"
+    echo "=================="
+    
+    echo "🗂️  Disk Usage:"
+    df -h
+    echo ""
+    
+    echo "🔍 Largest Directories:"
+    du -h -d 1 ~/ 2>/dev/null | sort -hr | head -10
+    echo ""
+    
+    echo "🗑️  Trash Size:"
+    du -sh ~/.Trash 2>/dev/null || echo "Trash is empty"
+    echo ""
+    
+    echo "📦 Package Caches:"
+    if [ -d ~/Library/Caches ]; then
+        du -sh ~/Library/Caches 2>/dev/null
+    fi
+    if [ -d ~/.npm ]; then
+        du -sh ~/.npm 2>/dev/null
+    fi
+    if [ -d ~/.cargo ]; then
+        du -sh ~/.cargo 2>/dev/null
+    fi
+}
+
+# Clean up system
+macos_cleanup() {
+    echo "🧹 Cleaning up macOS system..."
+    
+    # Empty trash
+    rm -rf ~/.Trash/*
+    echo "🗑️  Emptied Trash"
+    
+    # Clear system caches (user level)
+    rm -rf ~/Library/Caches/*
+    echo "🧽 Cleared user caches"
+    
+    # Clear downloads folder of old files (older than 30 days)
+    find ~/Downloads -type f -mtime +30 -delete 2>/dev/null
+    echo "📁 Cleaned old downloads"
+    
+    {{- if lookPath "brew" }}
+    # Clean Homebrew
+    brew cleanup
+    echo "🍺 Cleaned Homebrew"
+    {{- end }}
+    
+    # Purge inactive memory
+    sudo purge 2>/dev/null
+    echo "💾 Purged inactive memory"
+    
+    echo "✅ System cleanup complete"
+}
+
+# App Store utilities (if mas is installed)
+{{- if lookPath "mas" }}
+alias maslist='mas list'
+alias masinstall='mas install'
+alias masupgrade='mas upgrade'
+alias massearch='mas search'
+
+mas_update_all() {
+    echo "🏪 Updating App Store apps..."
+    mas upgrade
+    echo "✅ App Store apps updated"
+}
+{{- end }}
+
+# Time Machine utilities
+tm_status() {
+    tmutil status
+}
+
+tm_exclude() {
+    local path="$1"
+    if [ -z "$path" ]; then
+        echo "Usage: tm_exclude <path>"
+        return 1
+    fi
+    sudo tmutil addexclusion "$path"
+    echo "✅ Added to Time Machine exclusions: $path"
+}
+
+tm_include() {
+    local path="$1"
+    if [ -z "$path" ]; then
+        echo "Usage: tm_include <path>"
+        return 1
+    fi
+    sudo tmutil removeexclusion "$path"
+    echo "✅ Removed from Time Machine exclusions: $path"
+}
+
+# Docker for Mac utilities
+{{- if lookPath "docker" }}
+docker_mac_reset() {
+    echo "🐳 Resetting Docker for Mac..."
+    osascript -e 'quit app "Docker"'
+    sleep 5
+    open -a Docker
+    echo "✅ Docker for Mac reset"
+}
+{{- end }}
+
+# Battery and power management
+battery_info() {
+    pmset -g batt
+}
+
+power_settings() {
+    echo "🔋 Power Settings"
+    echo "================"
+    pmset -g
+}
+
+caffeine() {
+    echo "☕ Preventing sleep..."
+    caffeinate -d
+}
+
+# Network diagnostics
+network_info() {
+    echo "🌐 Network Information"
+    echo "===================="
+    
+    echo "📡 Active Connections:"
+    netstat -rn | grep default
+    echo ""
+    
+    echo "🔗 Network Interfaces:"
+    ifconfig | grep -E "(flags|inet )"
+    echo ""
+    
+    echo "📶 Wi-Fi Info:"
+    /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I
+    echo ""
+    
+    echo "🌍 External IP:"
+    curl -s ifconfig.me && echo
+}
+
+# macOS system status
+macos_status() {
+    echo "🍎 macOS System Status"
+    echo "====================="
+    
+    echo "💻 System Info:"
+    sw_vers
+    echo ""
+    
+    echo "🧠 Memory Pressure:"
+    memory_pressure
+    echo ""
+    
+    echo "🔥 CPU Usage:"
+    top -l 1 -s 0 | grep "CPU usage"
+    echo ""
+    
+    echo "💿 Disk Usage:"
+    df -h / | tail -1
+    echo ""
+    
+    echo "🔋 Battery Status:"
+    pmset -g batt | grep -E "(Now drawing|Battery)"
+    echo ""
+    
+    echo "🌡️  Thermal State:"
+    pmset -g therm
+}
+
+# macOS help function
+macos_help() {
+    echo "🍎 macOS Platform Functions:"
+    echo ""
+    echo "🍺 Homebrew:"
+    echo "  • brewup             - Update and upgrade all packages"
+    echo "  • brew_maintenance   - Complete Homebrew cleanup"
+    echo "  • brew_dev_setup     - Install essential dev tools"
+    echo ""
+    echo "⚙️  System Configuration:"
+    echo "  • macos_setup        - Configure optimal system settings"
+    echo "  • macos_cleanup      - Clean caches and old files"
+    echo "  • macos_status       - System status dashboard"
+    echo ""
+    echo "🔧 Development:"
+    echo "  • xcode_setup        - Install Xcode command line tools"
+    echo "  • xcode_reset        - Reset Xcode tools"
+    echo ""
+    echo "💿 Disk Management:"
+    echo "  • disk_info          - Disk usage information"
+    echo "  • tm_exclude <path>  - Exclude from Time Machine"
+    echo ""
+    echo "🔋 Power & Battery:"
+    echo "  • battery_info       - Battery status"
+    echo "  • caffeine           - Prevent system sleep"
+    echo ""
+    echo "🌐 Network:"
+    echo "  • network_info       - Network configuration"
+    echo "  • flushdns           - Flush DNS cache"
+    echo ""
+    echo "🔒 Files & Security:"
+    echo "  • showfiles/hidefiles - Toggle hidden files in Finder"
+    echo "  • keychain_list      - List keychains"
+}
+
+{{- end }}

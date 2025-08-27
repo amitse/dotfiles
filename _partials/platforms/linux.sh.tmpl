@@ -1,0 +1,393 @@
+# Linux Platform Configuration
+# Linux-specific settings, aliases, and functions
+
+{{- if eq .chezmoi.os "linux" }}
+
+# Linux-specific environment variables
+export BROWSER="${BROWSER:-firefox}"
+
+# Package manager detection and aliases
+{{- if lookPath "apt" }}
+# Debian/Ubuntu
+alias install='sudo apt install'
+alias update='sudo apt update'
+alias upgrade='sudo apt upgrade'
+alias search='apt search'
+alias remove='sudo apt remove'
+alias autoremove='sudo apt autoremove'
+alias installed='apt list --installed'
+
+pkg_info() {
+    apt show "$1"
+}
+
+pkg_files() {
+    dpkg -L "$1"
+}
+
+pkg_which() {
+    dpkg -S "$1"
+}
+
+pkg_update_system() {
+    sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
+    echo "✅ System updated"
+}
+{{- else if lookPath "yum" }}
+# RHEL/CentOS/Fedora (older)
+alias install='sudo yum install'
+alias update='sudo yum update'
+alias search='yum search'
+alias remove='sudo yum remove'
+alias installed='yum list installed'
+
+pkg_info() {
+    yum info "$1"
+}
+
+pkg_update_system() {
+    sudo yum update -y
+    echo "✅ System updated"
+}
+{{- else if lookPath "dnf" }}
+# Fedora (modern)
+alias install='sudo dnf install'
+alias update='sudo dnf update'
+alias search='dnf search'
+alias remove='sudo dnf remove'
+alias installed='dnf list installed'
+
+pkg_info() {
+    dnf info "$1"
+}
+
+pkg_update_system() {
+    sudo dnf update -y
+    echo "✅ System updated"
+}
+{{- else if lookPath "pacman" }}
+# Arch Linux
+alias install='sudo pacman -S'
+alias update='sudo pacman -Syu'
+alias search='pacman -Ss'
+alias remove='sudo pacman -R'
+alias installed='pacman -Q'
+
+pkg_info() {
+    pacman -Si "$1"
+}
+
+pkg_update_system() {
+    sudo pacman -Syu --noconfirm
+    echo "✅ System updated"
+}
+{{- else if lookPath "zypper" }}
+# openSUSE
+alias install='sudo zypper install'
+alias update='sudo zypper update'
+alias search='zypper search'
+alias remove='sudo zypper remove'
+alias installed='zypper search --installed-only'
+
+pkg_info() {
+    zypper info "$1"
+}
+
+pkg_update_system() {
+    sudo zypper update -y
+    echo "✅ System updated"
+}
+{{- end }}
+
+# System information aliases
+alias sysinfo='uname -a'
+alias meminfo='cat /proc/meminfo'
+alias cpuinfo='cat /proc/cpuinfo'
+alias diskinfo='df -h'
+alias kernelinfo='uname -r'
+
+# Process management
+alias psg='ps aux | grep'
+alias psmem='ps aux --sort=-%mem | head'
+alias pscpu='ps aux --sort=-%cpu | head'
+
+# Systemd shortcuts (if available)
+{{- if lookPath "systemctl" }}
+alias sctl='sudo systemctl'
+alias sctlu='systemctl --user'
+alias logs='sudo journalctl'
+alias logsu='journalctl --user'
+
+# Systemd helper functions
+service_status() {
+    systemctl status "$1"
+}
+
+service_start() {
+    sudo systemctl start "$1"
+    echo "✅ Started service: $1"
+}
+
+service_stop() {
+    sudo systemctl stop "$1"
+    echo "⏹️  Stopped service: $1"
+}
+
+service_restart() {
+    sudo systemctl restart "$1"
+    echo "🔄 Restarted service: $1"
+}
+
+service_enable() {
+    sudo systemctl enable "$1"
+    echo "✅ Enabled service: $1"
+}
+
+service_disable() {
+    sudo systemctl disable "$1"
+    echo "❌ Disabled service: $1"
+}
+
+service_logs() {
+    sudo journalctl -fu "$1"
+}
+{{- end }}
+
+# Linux file system utilities
+alias ll='ls -alF --color=auto'
+alias la='ls -A --color=auto'
+alias l='ls -CF --color=auto'
+alias grep='grep --color=auto'
+alias fgrep='fgrep --color=auto'
+alias egrep='egrep --color=auto'
+
+# Disk usage utilities
+alias du1='du -h -d 1'
+alias ducks='du -cks * | sort -rn | head'
+
+# Network utilities
+alias netstat='netstat -tuln'
+alias ports='ss -tuln'
+alias listening='ss -tulpn'
+
+# File permissions
+alias perm='stat -c "%A %a %n"'
+alias chownr='sudo chown -R'
+alias chmodr='sudo chmod -R'
+
+# Mount operations
+alias mounts='mount | column -t'
+
+# Hardware information
+hwinfo() {
+    echo "🖥️  Hardware Information"
+    echo "======================"
+    
+    echo "💾 Memory:"
+    free -h
+    echo ""
+    
+    echo "💿 Storage:"
+    lsblk
+    echo ""
+    
+    echo "🔌 USB Devices:"
+    lsusb 2>/dev/null | head -10
+    echo ""
+    
+    echo "📡 Network Interfaces:"
+    ip link show 2>/dev/null || ifconfig -a
+    echo ""
+    
+    echo "🖨️  PCI Devices:"
+    lspci 2>/dev/null | head -10
+    echo ""
+    
+    echo "🔋 Power Status:"
+    if [ -d "/sys/class/power_supply" ]; then
+        for battery in /sys/class/power_supply/BAT*; do
+            if [ -d "$battery" ]; then
+                echo "Battery: $(cat "$battery/capacity" 2>/dev/null || echo "Unknown")%"
+            fi
+        done
+    else
+        echo "No battery information available"
+    fi
+}
+
+# X11/Wayland display utilities
+{{- if lookPath "xrandr" }}
+alias displays='xrandr --listmonitors'
+alias resolution='xrandr | grep "*"'
+{{- end }}
+
+{{- if lookPath "xclip" }}
+alias clip='xclip -selection clipboard'
+alias clipout='xclip -o -selection clipboard'
+{{- end }}
+
+# Development tools installation helpers
+install_dev_tools() {
+    echo "🔧 Installing development tools..."
+    
+    {{- if lookPath "apt" }}
+    sudo apt update
+    sudo apt install -y \
+        build-essential \
+        git \
+        curl \
+        wget \
+        unzip \
+        software-properties-common \
+        apt-transport-https \
+        ca-certificates \
+        gnupg \
+        lsb-release
+    {{- else if lookPath "dnf" }}
+    sudo dnf groupinstall -y "Development Tools"
+    sudo dnf install -y git curl wget unzip
+    {{- else if lookPath "pacman" }}
+    sudo pacman -S --noconfirm base-devel git curl wget unzip
+    {{- else if lookPath "zypper" }}
+    sudo zypper install -y -t pattern devel_basis
+    sudo zypper install -y git curl wget unzip
+    {{- end }}
+    
+    echo "✅ Development tools installed"
+}
+
+# Flatpak shortcuts (if available)
+{{- if lookPath "flatpak" }}
+alias flat='flatpak'
+alias flatlist='flatpak list'
+alias flatinstall='flatpak install'
+alias flatremove='flatpak uninstall'
+alias flatupdate='flatpak update'
+alias flatsearch='flatpak search'
+
+flatpak_setup() {
+    # Add Flathub repository
+    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    echo "✅ Flathub repository added"
+}
+{{- end }}
+
+# Snap shortcuts (if available)
+{{- if lookPath "snap" }}
+alias snaplist='snap list'
+alias snapinstall='sudo snap install'
+alias snapremove='sudo snap remove'
+alias snaprefresh='sudo snap refresh'
+alias snapsearch='snap search'
+alias snapinfo='snap info'
+{{- end }}
+
+# AppImage utilities (if AppImage files are common)
+appimage_install() {
+    local file="$1"
+    local name="$2"
+    
+    if [ ! -f "$file" ]; then
+        echo "❌ AppImage file not found: $file"
+        return 1
+    fi
+    
+    if [ -z "$name" ]; then
+        name=$(basename "$file" .AppImage)
+    fi
+    
+    local install_dir="$HOME/.local/bin"
+    local desktop_dir="$HOME/.local/share/applications"
+    
+    mkdir -p "$install_dir" "$desktop_dir"
+    
+    # Make executable and move
+    chmod +x "$file"
+    mv "$file" "$install_dir/$name"
+    
+    echo "✅ AppImage installed: $name"
+    echo "   Location: $install_dir/$name"
+    echo "   Run with: $name"
+}
+
+# Container tools (if available)
+{{- if lookPath "podman" }}
+alias pod='podman'
+alias podps='podman ps'
+alias podpsa='podman ps -a'
+alias podi='podman images'
+alias podrun='podman run'
+alias podrm='podman rm'
+alias podrmi='podman rmi'
+{{- end }}
+
+# Linux-specific monitoring
+linux_status() {
+    echo "🐧 Linux System Status"
+    echo "====================="
+    
+    echo "📊 System Load:"
+    uptime
+    echo ""
+    
+    echo "💾 Memory Usage:"
+    free -h
+    echo ""
+    
+    echo "💿 Disk Usage:"
+    df -h | grep -E '^/dev/'
+    echo ""
+    
+    echo "🔥 Top Processes (CPU):"
+    ps aux --sort=-%cpu | head -6
+    echo ""
+    
+    echo "🧠 Top Processes (Memory):"
+    ps aux --sort=-%mem | head -6
+    echo ""
+    
+    if command -v sensors >/dev/null 2>&1; then
+        echo "🌡️  Temperature:"
+        sensors | grep -E '(Core|Package|temp)' | head -5
+        echo ""
+    fi
+    
+    {{- if lookPath "systemctl" }}
+    echo "⚠️  Failed Services:"
+    systemctl --failed --no-legend | head -3
+    {{- end }}
+}
+
+# Linux help function
+linux_help() {
+    echo "🐧 Linux Platform Functions:"
+    echo ""
+    echo "📦 Package Management:"
+    echo "  • install <pkg>      - Install package"
+    echo "  • update             - Update package list"
+    echo "  • upgrade            - Upgrade packages"
+    echo "  • search <pkg>       - Search packages"
+    echo "  • pkg_update_system  - Full system update"
+    echo ""
+    echo "⚙️  System Services:"
+    echo "  • service_start <name>   - Start service"
+    echo "  • service_stop <name>    - Stop service"
+    echo "  • service_restart <name> - Restart service"
+    echo "  • service_status <name>  - Check service status"
+    echo ""
+    echo "🔍 System Information:"
+    echo "  • hwinfo             - Hardware overview"
+    echo "  • linux_status       - System status dashboard"
+    echo "  • psmem/pscpu        - Top processes by resource"
+    echo ""
+    echo "🛠️  Development:"
+    echo "  • install_dev_tools  - Install build essentials"
+    echo ""
+    {{- if lookPath "flatpak" }}
+    echo "📱 Flatpak:"
+    echo "  • flatpak_setup      - Add Flathub repository"
+    echo "  • flatinstall <app>  - Install Flatpak app"
+    {{- end }}
+}
+
+{{- end }}

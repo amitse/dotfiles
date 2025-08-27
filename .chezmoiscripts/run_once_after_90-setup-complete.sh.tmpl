@@ -1,0 +1,265 @@
+#!/bin/bash
+# Setup and configuration script that runs after dotfiles are applied
+# Provides user guidance and sets up shell integration
+
+set -e
+
+# Colors for output
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+log_info() {
+    echo -e "${BLUE}ℹ️  $1${NC}"
+}
+
+log_success() {
+    echo -e "${GREEN}✅ $1${NC}"
+}
+
+log_tip() {
+    echo -e "${CYAN}💡 $1${NC}"
+}
+
+# Show setup completion message
+show_completion_message() {
+    echo ""
+    echo -e "${GREEN}🎉 Dotfiles setup completed successfully!${NC}"
+    echo ""
+    
+    local profile="{{ .profile }}"
+    
+    case "$profile" in
+        "minimal")
+            echo -e "${BLUE}📚 Minimal setup includes:${NC}"
+            echo "  • Git configuration with useful aliases"
+            echo "  • tmux with sensible defaults and cross-platform clipboard"
+            echo ""
+            log_tip "Try these commands:"
+            echo "  • tmux - start terminal multiplexer"
+            echo "  • git st - git status (alias)"
+            echo "  • git lg - pretty git log"
+            ;;
+        "developer")
+            echo -e "${BLUE}📚 Developer setup includes:${NC}"
+            echo "  • All minimal features plus:"
+            echo "  • Modern CLI tools (fzf, ripgrep, bat, zoxide)"
+            echo "  • Enhanced shell experience with smart aliases"
+            echo "  • GitHub CLI integration"
+            echo ""
+            log_tip "Try these enhanced commands:"
+            echo "  • Ctrl+R - fuzzy history search with fzf"
+            echo "  • Ctrl+T - fuzzy file finder"
+            echo "  • z <dir> - smart directory jumping with zoxide"
+            echo "  • bat <file> - syntax highlighted file viewing"
+            echo "  • rg <pattern> - ultra-fast text search"
+            ;;
+        "power-user")
+            echo -e "${BLUE}📚 Power user setup includes everything!${NC}"
+            echo ""
+            echo "🔧 Advanced features available:"
+            echo "  • All developer tools and more"
+            echo "  • Advanced git integration and aliases"
+            echo "  • Enhanced prompt with git status"
+            echo "  • Comprehensive tool aliases and functions"
+            echo ""
+            log_tip "Advanced commands to explore:"
+            echo "  • fe <pattern> - fuzzy file editor"
+            echo "  • fcd - fuzzy directory changer"
+            echo "  • glog - beautiful git log with graph"
+            echo "  • gclean - cleanup merged branches"
+            echo "  • fzf_rg - interactive search with preview"
+            ;;
+    esac
+    
+    echo ""
+    echo -e "${YELLOW}📋 Daily workflow commands:${NC}"
+    echo "  • chezmoi edit <file>  - edit managed configuration files"
+    echo "  • chezmoi diff         - preview changes before applying"
+    echo "  • chezmoi apply        - apply configuration changes"
+    echo "  • chezmoi status       - check what files are managed"
+    echo ""
+    
+    # Show available tools
+    echo -e "${BLUE}🔍 Checking installed tools:${NC}"
+    
+    local tools_available=()
+    local tools_missing=()
+    
+    {{- range .tools.essential }}
+    if command -v "{{ . }}" >/dev/null 2>&1; then
+        tools_available+=("{{ . }}")
+    else
+        tools_missing+=("{{ . }}")
+    fi
+    {{- end }}
+    
+    {{- if ne .profile "minimal" }}
+    {{- range .tools.optional }}
+    if command -v "{{ . }}" >/dev/null 2>&1; then
+        tools_available+=("{{ . }}")
+    else
+        tools_missing+=("{{ . }}")
+    fi
+    {{- end }}
+    {{- end }}
+    
+    if [ ${#tools_available[@]} -gt 0 ]; then
+        echo -e "  ${GREEN}✅ Available:${NC} ${tools_available[*]}"
+    fi
+    
+    if [ ${#tools_missing[@]} -gt 0 ]; then
+        echo -e "  ${YELLOW}⚠️  Missing:${NC} ${tools_missing[*]}"
+        echo "     (configurations will adapt gracefully)"
+    fi
+    
+    echo ""
+    
+    # Shell-specific guidance
+    if [ -n "$ZSH_VERSION" ]; then
+        log_info "You're using Zsh - great choice! Restart your shell to load new configs."
+    elif [ -n "$BASH_VERSION" ]; then
+        log_info "You're using Bash. Consider switching to Zsh for enhanced features."
+        log_tip "Install zsh and run: chsh -s \$(which zsh)"
+    fi
+    
+    # Platform-specific tips
+    {{- if eq .chezmoi.os "linux" }}
+    echo ""
+    log_tip "Linux-specific features:"
+    echo "  • Clipboard integration with wl-copy/xclip/xsel"
+    echo "  • Package manager integration for tool installation"
+    {{- if lookPath "apt" }}
+    echo "  • Using apt package manager"
+    {{- else if lookPath "pacman" }}
+    echo "  • Using pacman package manager"
+    {{- else if lookPath "dnf" }}
+    echo "  • Using dnf package manager"
+    {{- end }}
+    {{- else if eq .chezmoi.os "darwin" }}
+    echo ""
+    log_tip "macOS-specific features:"
+    echo "  • Native clipboard integration with pbcopy/pbpaste"
+    echo "  • Homebrew package manager integration"
+    echo "  • GNU tools available via Homebrew"
+    {{- else if eq .chezmoi.os "windows" }}
+    echo ""
+    log_tip "Windows-specific features:"
+    echo "  • Native clipboard integration with clip.exe"
+    echo "  • PowerShell profile with modern CLI aliases"
+    echo "  • WSL compatibility for Linux-like experience"
+    {{- end }}
+    
+    echo ""
+    log_success "Next steps:"
+    echo "  1. Restart your shell or run: source ~/.zshrc"
+    echo "  2. Try some of the commands listed above"
+    echo "  3. Customize further by editing files with 'chezmoi edit'"
+    echo ""
+    log_tip "Need help? Check the documentation in the docs/ directory"
+    log_tip "Or run 'chezmoi-help' for interactive assistance (coming soon)"
+}
+
+# Setup shell integration
+setup_shell_integration() {
+    {{- if lookPath "zoxide" }}
+    # Initialize zoxide for smart directory jumping
+    if command -v zoxide >/dev/null 2>&1; then
+        log_info "Setting up zoxide integration..."
+        # zoxide init is handled in the shell configuration
+    fi
+    {{- end }}
+    
+    {{- if lookPath "fzf" }}
+    # Ensure FZF integration is working
+    if command -v fzf >/dev/null 2>&1; then
+        log_info "FZF integration configured"
+        
+        # Test if FZF key bindings are available
+        if [ -n "$ZSH_VERSION" ]; then
+            # Zsh-specific check
+            if ! bindkey | grep -q "fzf"; then
+                log_tip "FZF key bindings will be available after shell restart"
+            fi
+        fi
+    fi
+    {{- end }}
+}
+
+# Create helpful aliases for chezmoi management
+create_management_aliases() {
+    local alias_file="{{ .chezmoi.homeDir }}/.local/bin/chezmoi-help"
+    
+    # Create local bin directory if it doesn't exist
+    mkdir -p "{{ .paths.local_bin }}"
+    
+    # Create a helper script for chezmoi operations
+    cat > "$alias_file" << 'EOF'
+#!/bin/bash
+# chezmoi helper script
+
+case "${1:-help}" in
+    "status"|"st")
+        echo "🔍 Checking dotfiles status..."
+        chezmoi status
+        ;;
+    "edit"|"e")
+        if [ -z "$2" ]; then
+            echo "Usage: chezmoi-help edit <file>"
+            echo "Example: chezmoi-help edit ~/.zshrc"
+        else
+            chezmoi edit "$2"
+        fi
+        ;;
+    "update"|"u")
+        echo "🔄 Updating dotfiles from remote..."
+        chezmoi update
+        ;;
+    "backup"|"b")
+        echo "💾 Creating backup..."
+        chezmoi archive | gzip > "dotfiles-backup-$(date +%Y%m%d-%H%M%S).tar.gz"
+        echo "Backup created: dotfiles-backup-$(date +%Y%m%d-%H%M%S).tar.gz"
+        ;;
+    "health"|"h")
+        echo "🏥 Running health check..."
+        chezmoi doctor
+        ;;
+    *)
+        echo "🚀 chezmoi helper commands:"
+        echo "  status (st)  - Check status of managed files"
+        echo "  edit (e)     - Edit a managed file"
+        echo "  update (u)   - Update from remote repository"
+        echo "  backup (b)   - Create backup archive"
+        echo "  health (h)   - Run health check"
+        echo ""
+        echo "📚 Common chezmoi commands:"
+        echo "  chezmoi diff         - Preview changes"
+        echo "  chezmoi apply        - Apply changes"
+        echo "  chezmoi add <file>   - Add file to management"
+        echo "  chezmoi remove <file> - Remove file from management"
+        ;;
+esac
+EOF
+    
+    chmod +x "$alias_file"
+    log_success "Created chezmoi helper script at $alias_file"
+}
+
+# Main execution
+main() {
+    log_info "Running post-installation setup..."
+    
+    setup_shell_integration
+    create_management_aliases
+    show_completion_message
+    
+    echo ""
+    log_success "Setup complete! 🎉"
+}
+
+# Only run if not sourced
+if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
+    main "$@"
+fi
