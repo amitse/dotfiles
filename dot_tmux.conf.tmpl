@@ -7,11 +7,6 @@
 # - Hostname display methods
 # - Terminal compatibility
 
-# Set prefix key to Ctrl-a (instead of default Ctrl-b)
-unbind C-b
-set-option -g prefix C-a
-bind-key C-a send-prefix
-
 # Enable mouse support
 set -g mouse on
 
@@ -77,27 +72,6 @@ bind -n M-Left select-pane -L
 bind -n M-Right select-pane -R
 bind -n M-Up select-pane -U
 bind -n M-Down select-pane -D
-
-# Vi mode for copy mode
-setw -g mode-keys vi
-bind-key -T copy-mode-vi v send-keys -X begin-selection
-{{- if eq .chezmoi.os "darwin" }}
-bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "pbcopy"
-{{- else if eq .chezmoi.os "windows" }}
-bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "clip.exe"
-{{- else }}
-# Linux clipboard integration - tries multiple clipboard tools
-{{- if lookPath "wl-copy" }}
-bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "wl-copy"
-{{- else if lookPath "xclip" }}
-bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"
-{{- else if lookPath "xsel" }}
-bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "xsel --clipboard --input"
-{{- else }}
-# Fallback: copy to tmux buffer only
-bind-key -T copy-mode-vi y send-keys -X copy-selection
-{{- end }}
-{{- end }}
 
 # History limit
 set -g history-limit 10000
