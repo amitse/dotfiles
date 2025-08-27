@@ -2,6 +2,9 @@
 # Install essential tools based on detected package manager and user profile
 # This script runs once before applying configurations
 
+{{- /* Include platform detection helpers */ -}}
+{{- include "chezmoi/templates/shared/platform-detect.tmpl" . -}}
+
 set -e
 
 # Colors for output
@@ -29,7 +32,7 @@ log_error() {
 
 # Detect package manager
 detect_package_manager() {
-    {{- $pm := include "package-manager" . }}
+    {{- $pm := include "package-manager" }}
     echo "{{ $pm }}"
 }
 
