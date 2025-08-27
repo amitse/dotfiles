@@ -50,24 +50,24 @@ detect_package_manager() {
     fi
 }
 
-# Install tools based on profile and package manager
+# Install tools based on package manager
 install_tools() {
     local pm="$1"
-    local profile="{{ .profile }}"
+    local profile="power-user"
     
     log_info "Installing tools for profile: $profile"
     log_info "Using package manager: $pm"
     
     # Essential tools for all profiles
     local essential_tools=(
-        {{- range .tools.essential }}
+        {{- range .data.tools.essential }}
         "{{ . }}"
         {{- end }}
     )
     
     # Optional tools
     local optional_tools=(
-        {{- range .tools.optional }}
+        {{- range .data.tools.optional }}
         "{{ . }}"
         {{- end }}
     )
@@ -191,7 +191,7 @@ handle_install_failure() {
 
 # Main execution
 main() {
-    log_info "Starting tool installation for {{ .profile }} profile..."
+    log_info "Starting tool installation for power-user profile..."
     
     local pm
     pm=$(detect_package_manager)
@@ -199,10 +199,10 @@ main() {
     if [ "$pm" = "none" ]; then
         log_warning "No package manager detected"
         log_info "Please install tools manually:"
-        {{- range .tools.essential }}
+        {{- range .data.tools.essential }}
         log_info "  - {{ . }}"
         {{- end }}
-        {{- range .tools.optional }}
+        {{- range .data.tools.optional }}
         log_info "  - {{ . }} (optional)"
         {{- end }}
         return 0
@@ -216,7 +216,7 @@ main() {
     log_info "Verifying essential tools..."
     local missing_tools=()
     
-    {{- range .tools.essential }}
+    {{- range .data.tools.essential }}
     if ! command -v "{{ . }}" >/dev/null 2>&1; then
         missing_tools+=("{{ . }}")
     fi
