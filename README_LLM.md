@@ -7,6 +7,7 @@ This document provides structured information for Large Language Models (LLMs) a
 **Repository**: amitse/dotfiles  
 **Management Tool**: chezmoi  
 **Primary Config**: tmux cross-platform configuration  
+**CLI Tools**: bat, ripgrep, fzf, zoxide, exa, entr, Midnight Commander  
 **Supported OS**: Windows, Linux, macOS  
 
 ## Quick Actions for Users
@@ -52,14 +53,18 @@ chezmoi add --template ~/.config/app/config  # Add as template
 ## File Structure
 
 ```
-├── bootstrap.sh              # Cross-platform installer
-├── bootstrap.ps1             # Windows PowerShell installer  
-├── install-linux.sh          # Linux-only installer
-├── dot_tmux.conf.tmpl        # tmux config template (main config)
-├── .chezmoiignore           # Files to ignore
-├── .gitattributes           # Git line ending config
-├── .gitignore               # Git ignore patterns
-└── README.md                # User documentation
+├── bootstrap.sh                                    # Cross-platform installer
+├── bootstrap.ps1                                   # Windows PowerShell installer  
+├── install-linux.sh                                # Linux-only installer
+├── dot_tmux.conf.tmpl                              # tmux config template (main config)
+├── dot_config/shell/aliases.sh.tmpl                # Shell aliases for CLI tools
+├── dot_config/bat/config.tmpl                      # bat (cat replacement) config
+├── dot_config/ripgrep/config                       # ripgrep search patterns
+├── Documents/PowerShell/Microsoft.PowerShell_profile.ps1.tmpl  # PowerShell profile
+├── .chezmoiignore                                  # Files to ignore
+├── .gitattributes                                  # Git line ending config
+├── .gitignore                                      # Git ignore patterns
+└── README.md                                       # User documentation
 ```
 
 ## Current Configurations
@@ -89,6 +94,43 @@ The tmux config uses chezmoi templates:
 # Linux-specific settings
 {{- end }}
 ```
+
+## Installed CLI Tools
+
+The bootstrap scripts automatically install these modern CLI tools:
+
+### Core Tools
+- **bat**: Enhanced `cat` with syntax highlighting and paging
+  - Usage: `bat file.txt`, replaces `cat`
+  - Config: `~/.config/bat/config`
+  
+- **ripgrep (rg)**: Ultra-fast text search
+  - Usage: `rg "pattern" [path]`, replaces `grep`
+  - Config: `~/.config/ripgrep/config`
+  
+- **fzf**: Fuzzy finder for files and command history
+  - Usage: `fzf`, `Ctrl+R` (history), `Ctrl+T` (files)
+  - Integrates with other tools for enhanced search
+
+- **zoxide**: Smart directory jumper with frecency
+  - Usage: `z [partial_path]`, replaces `cd`
+  - Learns your most-used directories
+
+- **exa**: Modern `ls` replacement with colors and git integration
+  - Usage: `exa`, `exa -l`, `exa --tree`
+  - Aliases: `ls`, `ll`, `la`, `tree`
+
+### Utility Tools
+- **entr**: File watcher for running commands on changes
+  - Usage: `ls *.py | entr python test.py`
+  
+- **Midnight Commander (mc)**: Terminal file manager
+  - Usage: `mc`
+
+### Installation Status by OS
+- **Linux**: Full support via package managers (apt/pacman/dnf) + fallbacks
+- **Windows**: Via winget/scoop/chocolatey (some tools may need manual install)
+- **macOS**: Via Homebrew (full support)
 
 ## Troubleshooting Guide for LLMs
 

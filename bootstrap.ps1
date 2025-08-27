@@ -82,6 +82,75 @@ function Install-Chezmoi {
     }
 }
 
+# Function to install CLI enhancement tools
+function Install-CLITools {
+    Write-Host "🔧 Installing CLI enhancement tools..." -ForegroundColor Yellow
+    
+    # Try different package managers
+    if (Test-Command "winget") {
+        Write-Host "   Using winget..." -ForegroundColor Gray
+        
+        # Install modern CLI tools
+        $tools = @(
+            @{Name="bat"; Id="sharkdp.bat"},
+            @{Name="ripgrep"; Id="BurntSushi.ripgrep.MSVC"},
+            @{Name="fzf"; Id="junegunn.fzf"},
+            @{Name="zoxide"; Id="ajeetdsouza.zoxide"}
+        )
+        
+        foreach ($tool in $tools) {
+            try {
+                Write-Host "   Installing $($tool.Name)..." -ForegroundColor Gray
+                winget install $tool.Id --silent --accept-package-agreements --accept-source-agreements 2>$null
+            }
+            catch {
+                Write-Host "   ⚠️  Failed to install $($tool.Name) via winget" -ForegroundColor Yellow
+            }
+        }
+    }
+    elseif (Test-Command "scoop") {
+        Write-Host "   Using scoop..." -ForegroundColor Gray
+        
+        # Add extras bucket for more tools
+        scoop bucket add extras 2>$null
+        
+        $tools = @("bat", "ripgrep", "fzf", "zoxide", "exa")
+        foreach ($tool in $tools) {
+            try {
+                Write-Host "   Installing $tool..." -ForegroundColor Gray
+                scoop install $tool 2>$null
+            }
+            catch {
+                Write-Host "   ⚠️  Failed to install $tool via scoop" -ForegroundColor Yellow
+            }
+        }
+    }
+    elseif (Test-Command "choco") {
+        Write-Host "   Using chocolatey..." -ForegroundColor Gray
+        
+        $tools = @("bat", "ripgrep", "fzf", "zoxide")
+        foreach ($tool in $tools) {
+            try {
+                Write-Host "   Installing $tool..." -ForegroundColor Gray
+                choco install $tool -y 2>$null
+            }
+            catch {
+                Write-Host "   ⚠️  Failed to install $tool via chocolatey" -ForegroundColor Yellow
+            }
+        }
+    }
+    else {
+        Write-Host "   ⚠️  No package manager found. Consider installing winget, scoop, or chocolatey" -ForegroundColor Yellow
+        Write-Host "   Manual installation links:" -ForegroundColor Gray
+        Write-Host "     - bat: https://github.com/sharkdp/bat/releases" -ForegroundColor Gray
+        Write-Host "     - ripgrep: https://github.com/BurntSushi/ripgrep/releases" -ForegroundColor Gray
+        Write-Host "     - fzf: https://github.com/junegunn/fzf/releases" -ForegroundColor Gray
+        Write-Host "     - zoxide: https://github.com/ajeetdsouza/zoxide/releases" -ForegroundColor Gray
+    }
+    
+    Write-Host "✅ CLI tools installation completed" -ForegroundColor Green
+}
+
 # Function to initialize and apply dotfiles
 function Initialize-Dotfiles {
     param([string]$Repo, [bool]$IsDryRun, [bool]$ForceApply)
@@ -140,6 +209,9 @@ try {
         $version = chezmoi --version
         Write-Host "✅ chezmoi already installed: $version" -ForegroundColor Green
     }
+    
+    # Install CLI enhancement tools
+    Install-CLITools
     
     # Initialize and apply dotfiles
     Initialize-Dotfiles -Repo $Repository -IsDryRun $DryRun -ForceApply $Force

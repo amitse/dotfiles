@@ -1,0 +1,92 @@
+# PowerShell profile for modern CLI tools
+# Add this to your PowerShell profile: $PROFILE
+
+# Modern CLI tool aliases
+{{- if lookPath "bat.exe" }}
+function cat { bat.exe @args }
+function less { bat.exe @args }
+{{- end }}
+
+{{- if lookPath "exa.exe" }}
+function ls { exa.exe @args }
+function ll { exa.exe -l @args }
+function la { exa.exe -la @args }
+function tree { exa.exe --tree @args }
+{{- end }}
+
+{{- if lookPath "rg.exe" }}
+function grep { rg.exe @args }
+{{- end }}
+
+{{- if lookPath "fd.exe" }}
+function find { fd.exe @args }
+{{- end }}
+
+{{- if lookPath "zoxide.exe" }}
+# Initialize zoxide for PowerShell
+Invoke-Expression (& { (zoxide init powershell | Out-String) })
+{{- end }}
+
+{{- if lookPath "fzf.exe" }}
+# FZF environment variables for PowerShell
+$env:FZF_DEFAULT_OPTS = '--height 40% --layout=reverse --border'
+{{- if lookPath "rg.exe" }}
+$env:FZF_DEFAULT_COMMAND = 'rg --files --hidden --follow --glob "!.git/*"'
+{{- else }}
+$env:FZF_DEFAULT_COMMAND = 'Get-ChildItem -Recurse -File | Select-Object -ExpandProperty FullName'
+{{- end }}
+$env:FZF_CTRL_T_COMMAND = $env:FZF_DEFAULT_COMMAND
+
+# FZF functions for PowerShell
+function fzf_edit {
+    $file = fzf.exe
+    if ($file) {
+        & ${env:EDITOR} $file
+    }
+}
+Set-Alias fe fzf_edit
+
+function fzf_cd {
+    $dir = Get-ChildItem -Directory -Recurse | Select-Object -ExpandProperty FullName | fzf.exe
+    if ($dir) {
+        Set-Location $dir
+    }
+}
+Set-Alias fcd fzf_cd
+{{- end }}
+
+{{- if and (lookPath "rg.exe") (lookPath "fzf.exe") }}
+function rg_edit {
+    $result = rg.exe --line-number . | fzf.exe --delimiter ":" --preview 'bat.exe --color=always --highlight-line {2} {1}'
+    if ($result) {
+        $parts = $result -split ':'
+        $file = $parts[0]
+        $line = $parts[1]
+        if ($env:EDITOR) {
+            & $env:EDITOR $file
+        } else {
+            notepad $file
+        }
+    }
+}
+Set-Alias rge rg_edit
+{{- end }}
+
+# Useful PowerShell functions
+function Get-SystemInfo {
+    Write-Host "System Information:" -ForegroundColor Green
+    Write-Host "OS: $([System.Environment]::OSVersion.VersionString)" -ForegroundColor Yellow
+    Write-Host "PowerShell: $($PSVersionTable.PSVersion)" -ForegroundColor Yellow
+    Write-Host "User: $env:USERNAME" -ForegroundColor Yellow
+    Write-Host "Computer: $env:COMPUTERNAME" -ForegroundColor Yellow
+}
+Set-Alias sysinfo Get-SystemInfo
+
+# Enhanced directory listing
+function Get-DirectorySize {
+    param([string]$Path = ".")
+    Get-ChildItem $Path -Recurse -File | 
+    Measure-Object -Property Length -Sum | 
+    Select-Object @{Name="SizeGB";Expression={[math]::Round($_.Sum/1GB,2)}}, Count
+}
+Set-Alias dirsize Get-DirectorySize

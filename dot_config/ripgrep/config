@@ -1,0 +1,38 @@
+# Configuration for ripgrep (rg)
+# Global configuration file for ripgrep
+
+# Follow symbolic links
+--follow
+
+# Search hidden files
+--hidden
+
+# Use smart case (case insensitive unless pattern has uppercase)
+--smart-case
+
+# Sort results by file path
+--sort=path
+
+# Maximum number of columns to search in a line
+--max-columns=500
+
+# Maximum file size to search (in bytes)
+--max-filesize=10M
+
+# Default file type associations
+--type-add=web:*.{html,css,js,ts,jsx,tsx,vue,svelte}
+--type-add=config:*.{json,yaml,yml,toml,ini,conf,cfg}
+--type-add=docs:*.{md,txt,org,rst}
+
+# Global ignore patterns
+--glob=!.git/*
+--glob=!node_modules/*
+--glob=!.vscode/*
+--glob=!.idea/*
+--glob=!*.min.js
+--glob=!*.min.css
+--glob=!dist/*
+--glob=!build/*
+--glob=!target/*
+--glob=!.DS_Store
+--glob=!Thumbs.db

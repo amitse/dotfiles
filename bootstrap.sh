@@ -180,35 +180,129 @@ install_dependencies() {
     case $os in
         "linux")
             if command_exists apt-get; then
-                log_info "Installing clipboard tools (apt)..."
-                # Install clipboard tools but don't fail if they're not available
+                log_info "Installing essential tools (apt)..."
                 sudo apt update
-                sudo apt install -y git tmux || true
-                # Try to install clipboard tools (non-fatal)
+                # Essential tools
+                sudo apt install -y git tmux curl || true
+                # Clipboard tools (non-fatal)
                 sudo apt install -y wl-clipboard || sudo apt install -y xclip || sudo apt install -y xsel || true
+                
+                log_info "Installing CLI enhancement tools (apt)..."
+                # Modern CLI tools
+                sudo apt install -y bat ripgrep fzf fd-find || true
+                sudo apt install -y mc || true  # Midnight Commander
+                # Note: exa and zoxide may need different installation methods
+                
             elif command_exists pacman; then
                 log_info "Installing tools (pacman)..."
-                sudo pacman -S --noconfirm git tmux || true
+                sudo pacman -S --noconfirm git tmux curl || true
                 sudo pacman -S --noconfirm wl-clipboard || sudo pacman -S --noconfirm xclip || true
+                
+                log_info "Installing CLI enhancement tools (pacman)..."
+                sudo pacman -S --noconfirm bat ripgrep fzf fd exa zoxide mc || true
+                
             elif command_exists dnf; then
                 log_info "Installing tools (dnf)..."
-                sudo dnf install -y git tmux || true
+                sudo dnf install -y git tmux curl || true
                 sudo dnf install -y wl-clipboard || sudo dnf install -y xclip || true
+                
+                log_info "Installing CLI enhancement tools (dnf)..."
+                sudo dnf install -y bat ripgrep fzf fd-find mc || true
+                # exa and zoxide may need different repos
             fi
+            
+            # Try to install tools via other methods if package manager didn't have them
+            install_modern_cli_tools_linux
             ;;
         "darwin")
             if command_exists brew; then
                 log_info "Installing tools (Homebrew)..."
                 brew install git tmux || true
+                
+                log_info "Installing CLI enhancement tools (Homebrew)..."
+                brew install bat ripgrep fzf fd exa zoxide entr midnight-commander || true
             fi
             ;;
         "windows")
-            log_info "Windows detected - assuming git and basic tools are available"
-            # On Windows, we assume Git for Windows is installed
+            log_info "Windows detected - installing tools via package managers..."
+            install_modern_cli_tools_windows
             ;;
     esac
     
     log_success "Dependencies installation completed"
+}
+
+# Install modern CLI tools on Linux via alternative methods
+install_modern_cli_tools_linux() {
+    log_info "Installing additional CLI tools via alternative methods..."
+    
+    # Install exa if not available
+    if ! command_exists exa && ! command_exists eza; then
+        log_info "Installing exa/eza (modern ls replacement)..."
+        if command_exists cargo; then
+            cargo install exa || cargo install eza || true
+        elif [ -f "$HOME/.cargo/bin/cargo" ]; then
+            "$HOME/.cargo/bin/cargo" install exa || "$HOME/.cargo/bin/cargo" install eza || true
+        fi
+    fi
+    
+    # Install zoxide if not available
+    if ! command_exists zoxide; then
+        log_info "Installing zoxide (smart cd replacement)..."
+        if command_exists cargo; then
+            cargo install zoxide || true
+        elif [ -f "$HOME/.cargo/bin/cargo" ]; then
+            "$HOME/.cargo/bin/cargo" install zoxide || true
+        else
+            # Try binary installation
+            curl -sS https://webinstall.dev/zoxide | bash || true
+        fi
+    fi
+    
+    # Install entr if not available
+    if ! command_exists entr; then
+        log_info "Installing entr (file watcher)..."
+        # Try from source if package manager doesn't have it
+        if command_exists git && command_exists make; then
+            cd /tmp
+            git clone https://github.com/eradman/entr.git && cd entr && make test && sudo make install || true
+            cd - > /dev/null
+        fi
+    fi
+}
+
+# Install modern CLI tools on Windows
+install_modern_cli_tools_windows() {
+    if command_exists winget.exe; then
+        log_info "Installing CLI tools via winget..."
+        # Install tools that are available via winget
+        winget.exe install sharkdp.bat --silent || true
+        winget.exe install BurntSushi.ripgrep.MSVC --silent || true
+        winget.exe install junegunn.fzf --silent || true
+        winget.exe install ajeetdsouza.zoxide --silent || true
+        # Note: exa, entr, mc may not be available via winget
+        
+    elif command_exists scoop; then
+        log_info "Installing CLI tools via scoop..."
+        scoop install bat ripgrep fzf zoxide || true
+        scoop install exa entr || true
+        
+    elif command_exists choco; then
+        log_info "Installing CLI tools via chocolatey..."
+        choco install bat ripgrep fzf zoxide -y || true
+        # Some tools may not be available
+    fi
+    
+    # Try to install missing tools via other methods
+    if ! command_exists bat; then
+        log_warning "bat not installed - consider manually installing from https://github.com/sharkdp/bat"
+    fi
+    if ! command_exists rg; then
+        log_warning "ripgrep not installed - consider manually installing from https://github.com/BurntSushi/ripgrep"
+    fi
+    if ! command_exists fzf; then
+        log_warning "fzf not installed - consider manually installing from https://github.com/junegunn/fzf"
+    fi
 }
 
 # Initialize and apply dotfiles

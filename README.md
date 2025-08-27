@@ -9,6 +9,8 @@ Personal dotfiles managed with [chezmoi](https://chezmoi.io).
 - **Cross-platform**: Works on Windows, macOS, and Linux
 - **Templating**: OS-specific configurations using chezmoi templates
 - **tmux configuration**: Enhanced tmux setup with mouse support, vi-mode, and platform-specific clipboard integration
+- **Modern CLI tools**: Automatic installation of bat, ripgrep, fzf, zoxide, exa, entr, and Midnight Commander
+- **Smart aliases**: Shell aliases and functions for enhanced productivity
 - **Safe secrets**: Excludes sensitive files and provides patterns for secure secret management
 
 ## Quick Start
@@ -158,6 +160,7 @@ export GITHUB_TOKEN="your_token_here"
 
 ## Files included
 
+### Core Configuration
 - `.tmux.conf` - tmux configuration with:
   - Ctrl-a prefix
   - Mouse support
@@ -168,6 +171,21 @@ export GITHUB_TOKEN="your_token_here"
     - **macOS**: `pbcopy`
   - 256-color support
   - Sensible defaults
+
+### Modern CLI Tools & Configs
+- **Shell aliases** (`.config/shell/aliases.sh`) - Smart aliases for modern CLI tools
+- **PowerShell profile** - Windows-specific enhancements and tool integration
+- **bat config** (`.config/bat/config`) - Syntax highlighting and theming
+- **ripgrep config** (`.config/ripgrep/config`) - Search patterns and file type associations
+
+### Automatically Installed CLI Tools
+- **[bat](https://github.com/sharkdp/bat)** - Enhanced `cat` with syntax highlighting
+- **[ripgrep](https://github.com/BurntSushi/ripgrep)** - Ultra-fast text search (`rg`)
+- **[fzf](https://github.com/junegunn/fzf)** - Fuzzy finder for files and history
+- **[zoxide](https://github.com/ajeetdsouza/zoxide)** - Smart `cd` command with frecency
+- **[exa](https://github.com/ogham/exa)** - Modern `ls` replacement with colors and icons
+- **[entr](https://github.com/eradman/entr)** - File watcher for running commands on changes
+- **[Midnight Commander](https://midnight-commander.org/)** - Terminal file manager
 
 ## Customization
 

@@ -1,0 +1,94 @@
+# Common shell aliases for modern CLI tools
+# This file can be sourced by various shell configs
+
+# Alias traditional commands to modern alternatives if available
+{{- if lookPath "bat" }}
+alias cat='bat'
+alias less='bat'
+{{- else if lookPath "batcat" }}
+# Ubuntu/Debian installs bat as batcat
+alias cat='batcat'
+alias bat='batcat'
+alias less='batcat'
+{{- end }}
+
+{{- if lookPath "exa" }}
+alias ls='exa'
+alias ll='exa -l'
+alias la='exa -la'
+alias tree='exa --tree'
+{{- else if lookPath "eza" }}
+alias ls='eza'
+alias ll='eza -l'
+alias la='eza -la' 
+alias tree='eza --tree'
+{{- end }}
+
+{{- if lookPath "rg" }}
+alias grep='rg'
+{{- end }}
+
+{{- if lookPath "fd" }}
+alias find='fd'
+{{- else if lookPath "fdfind" }}
+# Ubuntu/Debian installs fd as fdfind
+alias fd='fdfind'
+alias find='fdfind'
+{{- end }}
+
+{{- if lookPath "zoxide" }}
+# Initialize zoxide for smart cd
+eval "$(zoxide init --cmd cd bash 2>/dev/null || zoxide init bash 2>/dev/null || true)"
+{{- end }}
+
+{{- if lookPath "fzf" }}
+# FZF key bindings and fuzzy completion
+{{- if eq .chezmoi.os "linux" }}
+source /usr/share/fzf/key-bindings.bash 2>/dev/null || true
+source /usr/share/fzf/completion.bash 2>/dev/null || true
+# Alternative paths for different distributions
+source ~/.fzf.bash 2>/dev/null || true
+{{- else if eq .chezmoi.os "darwin" }}
+source /opt/homebrew/opt/fzf/shell/key-bindings.bash 2>/dev/null || true
+source /opt/homebrew/opt/fzf/shell/completion.bash 2>/dev/null || true
+{{- end }}
+
+# FZF environment variables
+export FZF_DEFAULT_COMMAND='rg --files --hidden --follow --glob "!.git/*"' 2>/dev/null || export FZF_DEFAULT_COMMAND='find . -type f'
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
+{{- end }}
+
+# Midnight Commander
+{{- if lookPath "mc" }}
+alias mc='mc --nosubshell'
+{{- end }}
+
+# Useful functions using modern tools
+{{- if lookPath "fzf" }}
+# Quick file search and edit
+fzf_edit() {
+    local file
+    file=$(fzf) && ${EDITOR:-vim} "$file"
+}
+alias fe='fzf_edit'
+
+# Quick directory jump with fzf
+fzf_cd() {
+    local dir
+    dir=$(find . -type d 2>/dev/null | fzf) && cd "$dir"
+}
+alias fcd='fzf_cd'
+{{- end }}
+
+{{- if and (lookPath "rg") (lookPath "fzf") }}
+# Search content and edit file
+rg_edit() {
+    local file line
+    read file line <<< $(rg --line-number . | fzf --delimiter : --preview 'bat --color=always --highlight-line {2} {1}' | awk -F: '{print $1, $2}')
+    if [[ -n $file ]]; then
+        ${EDITOR:-vim} "$file" +${line:-1}
+    fi
+}
+alias rge='rg_edit'
+{{- end }}

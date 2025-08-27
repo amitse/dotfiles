@@ -1,0 +1,30 @@
+# Configuration for bat (cat replacement)
+# See https://github.com/sharkdp/bat for more options
+
+# Default theme for syntax highlighting
+{{- if eq .chezmoi.os "windows" }}
+# Windows terminal with dark background
+--theme="Visual Studio Dark+"
+{{- else }}
+# Unix terminal
+--theme="TwoDark"
+{{- end }}
+
+# Show line numbers
+--style=numbers
+
+# Use colored output even when piping
+--color=always
+
+# Set tab width
+--tabs=4
+
+# Wrap long lines
+--wrap=auto
+
+# Show file header
+--decorations=always
+
+# Map file extensions to languages
+--map-syntax "*.jenkinsfile:Groovy"
+--map-syntax ".ignore:Git Ignore"

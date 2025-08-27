@@ -46,15 +46,30 @@ fi
 # Install dependencies
 echo -e "${BLUE}📦 Installing dependencies...${NC}"
 if command -v apt-get >/dev/null 2>&1; then
-    sudo apt install -y git tmux
+    sudo apt install -y git tmux curl
     # Try clipboard tools (non-fatal)
     sudo apt install -y wl-clipboard 2>/dev/null || \
     sudo apt install -y xclip 2>/dev/null || \
     sudo apt install -y xsel 2>/dev/null || true
+    
+    echo -e "${BLUE}📦 Installing CLI enhancement tools...${NC}"
+    # Modern CLI tools
+    sudo apt install -y bat ripgrep fzf fd-find mc 2>/dev/null || true
+    
 elif command -v pacman >/dev/null 2>&1; then
-    sudo pacman -S --noconfirm git tmux
+    sudo pacman -S --noconfirm git tmux curl
     sudo pacman -S --noconfirm wl-clipboard 2>/dev/null || \
     sudo pacman -S --noconfirm xclip 2>/dev/null || true
+    
+    echo -e "${BLUE}📦 Installing CLI enhancement tools...${NC}"
+    sudo pacman -S --noconfirm bat ripgrep fzf fd exa zoxide mc 2>/dev/null || true
+fi
+
+# Try alternative installation for missing tools
+echo -e "${BLUE}📦 Installing additional tools via alternative methods...${NC}"
+# Install zoxide if not available
+if ! command -v zoxide >/dev/null 2>&1; then
+    curl -sS https://webinstall.dev/zoxide | bash 2>/dev/null || true
 fi
 
 # Setup dotfiles
