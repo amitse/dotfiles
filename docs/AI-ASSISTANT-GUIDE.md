@@ -60,7 +60,7 @@ chezmoi add --template ~/.config/app/config  # Add as template
 ├── dot_config/shell/aliases.sh.tmpl                # Shell aliases for CLI tools
 ├── dot_config/bat/config.tmpl                      # bat (cat replacement) config
 ├── dot_config/ripgrep/config                       # ripgrep search patterns
-├── Documents/PowerShell/Microsoft.PowerShell_profile.ps1.tmpl  # PowerShell profile
+├── configs/powershell/Microsoft.PowerShell_profile.ps1.tmpl  # PowerShell profile
 ├── .chezmoiignore                                  # Files to ignore
 ├── .gitattributes                                  # Git line ending config
 ├── .gitignore                                      # Git ignore patterns

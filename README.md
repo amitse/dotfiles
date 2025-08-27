@@ -7,13 +7,13 @@ Personal dotfiles managed with [chezmoi](https://chezmoi.io) - modular, profile-
 **Linux/macOS:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/amitse/dotfiles/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/amitse/dotfiles/main/scripts/install/unix/install-unix.sh | bash
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-irm https://raw.githubusercontent.com/amitse/dotfiles/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/amitse/dotfiles/main/scripts/install/windows/install-windows.ps1 | iex
 ```
 
 That's it! The installer will:
@@ -123,6 +123,21 @@ chezmoi init --apply https://github.com/amitse/dotfiles.git
 ```
 
 </details>
+
+------
+
+## 📋 Changelog
+
+### August 2025 - Folder Restructure
+
+The repository was reorganized for better maintainability:
+
+- **`chezmoi/`** - All chezmoi-specific templates and scripts (moved from `.chezmoi/` and `.chezmoiscripts/`)
+- **`configs/templates/`** - Generic configuration templates (moved from `configs/dot_*.tmpl`)  
+- **`configs/powershell/`** - PowerShell configurations (moved from `Documents/PowerShell/`)
+- **`scripts/install/{unix,windows}/`** - Platform-specific install scripts
+
+Git history is preserved for all moved files. Old clone instructions remain valid.
 
 ------
 
