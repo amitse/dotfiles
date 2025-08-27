@@ -80,18 +80,19 @@ test_shell_scripts() {
     fi
     
     # Test shell partials (basic syntax check)
-    for partial in "$REPO_ROOT"/_partials/shell/*.tmpl; do
+    # Check shell partials under templates/partials
+    for partial in "$REPO_ROOT"/templates/partials/shell/*.tmpl; do
         if [[ -f "$partial" ]]; then
             # Remove chezmoi template syntax for basic syntax check
             local temp_file=$(mktemp)
             sed 's/{{[^}]*}}/""/' "$partial" > "$temp_file"
-            
+
             if bash -n "$temp_file" 2>/dev/null; then
                 echo -e "${GREEN}✅ $(basename "$partial") syntax valid${NC}"
             else
                 echo -e "${YELLOW}⚠️  $(basename "$partial") has template syntax (expected)${NC}"
             fi
-            
+
             rm -f "$temp_file"
         fi
     done
@@ -231,7 +232,6 @@ test_repository_structure() {
     
     local required_dirs=(
         "templates/partials"
-        "_partials/shell"
         "docs"
         "scripts"
         ".chezmoi"
@@ -255,6 +255,24 @@ test_repository_structure() {
         done
         return 1
     fi
+}
+
+# Fail fast if any legacy '_partials' references remain in the tree
+check_for_legacy_partials_refs() {
+    echo -e "${BLUE}🔎 Checking for legacy '_partials' references...${NC}"
+
+    if Select-String -Path "$REPO_ROOT" -Pattern "_partials" -CaseSensitive -Quiet 2>/dev/null; then
+        echo -e "${RED}❌ Found references to '_partials' in the repository. Please update them to 'templates/partials'${NC}"
+        return 1
+    else
+        # Use grep as fallback for environments without Select-String
+        if grep -R --line-number "_partials" "$REPO_ROOT" >/dev/null 2>&1; then
+            echo -e "${RED}❌ Found references to '_partials' in the repository. Please update them to 'templates/partials'${NC}"
+            return 1
+        fi
+    fi
+
+    echo -e "${GREEN}✅ No legacy '_partials' references found${NC}"
 }
 
 # Test 7: Basic install script validation (non-interactive)
