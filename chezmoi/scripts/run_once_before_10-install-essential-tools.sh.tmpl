@@ -2,9 +2,6 @@
 # Install essential tools based on detected package manager and user profile
 # This script runs once before applying configurations
 
-{{- /* Include platform detection helpers */ -}}
-{{- include "chezmoi/templates/shared/platform-detect.tmpl" . -}}
-
 set -e
 
 # Colors for output
@@ -32,8 +29,25 @@ log_error() {
 
 # Detect package manager
 detect_package_manager() {
-    {{- $pm := include "package-manager" }}
-    echo "{{ $pm }}"
+    if command -v apt >/dev/null 2>&1; then
+        echo "apt"
+    elif command -v yum >/dev/null 2>&1; then
+        echo "yum"
+    elif command -v dnf >/dev/null 2>&1; then
+        echo "dnf"
+    elif command -v pacman >/dev/null 2>&1; then
+        echo "pacman"
+    elif command -v brew >/dev/null 2>&1; then
+        echo "brew"
+    elif command -v winget >/dev/null 2>&1; then
+        echo "winget"
+    elif command -v scoop >/dev/null 2>&1; then
+        echo "scoop"
+    elif command -v choco >/dev/null 2>&1; then
+        echo "choco"
+    else
+        echo "none"
+    fi
 }
 
 # Install tools based on profile and package manager
