@@ -60,14 +60,14 @@ install_tools() {
     
     # Essential tools for all profiles
     local essential_tools=(
-        {{- range .data.tools.essential }}
+        {{- range .tools.essential }}
         "{{ . }}"
         {{- end }}
     )
     
     # Optional tools
     local optional_tools=(
-        {{- range .data.tools.optional }}
+        {{- range .tools.optional }}
         "{{ . }}"
         {{- end }}
     )
@@ -199,10 +199,10 @@ main() {
     if [ "$pm" = "none" ]; then
         log_warning "No package manager detected"
         log_info "Please install tools manually:"
-        {{- range .data.tools.essential }}
+        {{- range .tools.essential }}
         log_info "  - {{ . }}"
         {{- end }}
-        {{- range .data.tools.optional }}
+        {{- range .tools.optional }}
         log_info "  - {{ . }} (optional)"
         {{- end }}
         return 0
@@ -216,7 +216,7 @@ main() {
     log_info "Verifying essential tools..."
     local missing_tools=()
     
-    {{- range .data.tools.essential }}
+    {{- range .tools.essential }}
     if ! command -v "{{ . }}" >/dev/null 2>&1; then
         missing_tools+=("{{ . }}")
     fi
