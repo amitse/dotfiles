@@ -12,7 +12,8 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+# repo root is two levels up from scripts/tools
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 echo -e "${BLUE}🧪 Dotfiles Validation Suite${NC}"
 echo -e "${BLUE}============================${NC}"
@@ -23,12 +24,12 @@ test_required_files() {
     echo -e "${BLUE}📁 Testing required files...${NC}"
     
     local required_files=(
-        "install.sh"
-        "install.ps1"
+        "scripts/install/install-unix.sh"
+        "scripts/install/install-windows.ps1"
         "README.md"
         "PLAN.md"
         ".chezmoi/chezmoi.toml.tmpl"
-        "dot_zshrc.tmpl"
+        "templates/root/dot_zshrc.tmpl"
         "_partials/shell/core.sh.tmpl"
         "_partials/shell/exports.sh.tmpl"
         "_partials/shell/paths.sh.tmpl"
