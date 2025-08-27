@@ -28,10 +28,15 @@ safe_read() {
         read -r -p "$prompt" "$__resultvar"
         return $?
     fi
-    # Otherwise try reading from /dev/tty if available
+    # Otherwise try reading from /dev/tty if available. Use fd 3 to
+    # avoid clobbering stdin/stdout and improve compatibility.
     if [ -e /dev/tty ]; then
-        read -r -p "$prompt" "$__resultvar" < /dev/tty
-        return $?
+        # Open /dev/tty on fd 3 for reading, read using -u 3, then close fd 3
+        exec 3</dev/tty
+        read -r -u 3 -p "$prompt" "$__resultvar"
+        local rc=$?
+        exec 3<&-
+        return $rc
     fi
     # Non-interactive environment: return failure and set variable empty
     eval "$__resultvar=''"
