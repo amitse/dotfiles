@@ -18,6 +18,26 @@ echo -e "${GREEN}🚀 Enhanced Dotfiles Installer${NC}"
 echo -e "${BLUE}================================${NC}"
 echo ""
 
+# Safe read helper: prefer /dev/tty when stdin is not a terminal (e.g. curl | bash)
+safe_read() {
+    # Usage: safe_read "Prompt: " varname
+    local prompt="$1"
+    local __resultvar="$2"
+    # If stdin is a TTY, read normally
+    if [ -t 0 ]; then
+        read -r -p "$prompt" "$__resultvar"
+        return $?
+    fi
+    # Otherwise try reading from /dev/tty if available
+    if [ -e /dev/tty ]; then
+        read -r -p "$prompt" "$__resultvar" < /dev/tty
+        return $?
+    fi
+    # Non-interactive environment: return failure and set variable empty
+    eval "$__resultvar=''"
+    return 1
+}
+
 # Function to show profile information
 show_profile_info() {
     echo -e "${CYAN}📋 Available Profiles:${NC}"
@@ -44,7 +64,12 @@ select_profile() {
     while true; do
         show_profile_info
         echo -e "${YELLOW}Which profile would you like to install?${NC}"
-        read -p "Enter your choice (1-3, or 'h' for help): " choice
+        # Try to read interactively (prefers /dev/tty when stdin isn't a TTY)
+        if ! safe_read "Enter your choice (1-3, or 'h' for help): " choice; then
+            # No interactive TTY available — pick a sensible default (Developer)
+            echo -e "${YELLOW}No TTY available; defaulting to Developer profile (2). To force non-interactive install, run with --non-interactive.${NC}"
+            choice=2
+        fi
         
         case $choice in
             1)
@@ -101,18 +126,33 @@ prompt_git_credentials() {
     echo "We'll configure git with your information."
     echo ""
     
-    read -p "Enter your full name for git commits: " git_name
-    while [[ -z "$git_name" ]]; do
-        echo -e "${RED}❌ Name cannot be empty${NC}"
-        read -p "Enter your full name for git commits: " git_name
-    done
+    # Prompt for git name (use safe_read; fallback to env or default)
+    if safe_read "Enter your full name for git commits: " git_name; then
+        while [[ -z "$git_name" ]]; do
+            echo -e "${RED}❌ Name cannot be empty${NC}"
+            if ! safe_read "Enter your full name for git commits: " git_name; then
+                break
+            fi
+        done
+    else
+        # No tty: try environment or pick a default
+        git_name="${GIT_NAME:-Test User}"
+        echo -e "${YELLOW}No TTY available; using git name: $git_name${NC}"
+    fi
     export GIT_NAME="$git_name"
-    
-    read -p "Enter your email address for git commits: " git_email
-    while [[ ! "$git_email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; do
-        echo -e "${RED}❌ Please enter a valid email address${NC}"
-        read -p "Enter your email address for git commits: " git_email
-    done
+
+    # Prompt for git email (use safe_read; fallback to env or default)
+    if safe_read "Enter your email address for git commits: " git_email; then
+        while [[ ! "$git_email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; do
+            echo -e "${RED}❌ Please enter a valid email address${NC}"
+            if ! safe_read "Enter your email address for git commits: " git_email; then
+                break
+            fi
+        done
+    else
+        git_email="${GIT_EMAIL:-test@example.com}"
+        echo -e "${YELLOW}No TTY available; using git email: $git_email${NC}"
+    fi
     export GIT_EMAIL="$git_email"
     
     echo ""
