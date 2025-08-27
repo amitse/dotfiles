@@ -1,6 +1,7 @@
 #!/bin/bash
-# Enhanced dotfiles installer using chezmoi with profile selection
-# Usage: curl -fsSL https://raw.githubusercontent.com/amitse/dotfiles/main/install.sh | bash
+# Enhanced dotfiles installer using chezmoi
+# Usage (Linux/macOS):
+#   curl -fsSL https://raw.githubusercontent.com/amitse/dotfiles/main/scripts/install/unix/install-unix.sh | bash
 
 set -e
 
@@ -14,11 +15,8 @@ NC='\033[0m'
 
 DOTFILES_REPO="amitse/dotfiles"
 
-# Default profile: 3 = Power User. Can be overridden by setting PROFILE_CHOICE env var
-PROFILE_CHOICE="${PROFILE_CHOICE:-3}"
-
-echo -e "${GREEN}🚀 Enhanced Dotfiles Installer${NC}"
-echo -e "${BLUE}================================${NC}"
+echo -e "${GREEN}🚀 Power User Dotfiles Installer${NC}"
+echo -e "${BLUE}=================================${NC}"
 echo ""
 
 # Safe read helper: prefer /dev/tty when stdin is not a terminal (e.g. curl | bash)
@@ -44,87 +42,6 @@ safe_read() {
     # Non-interactive environment: return failure and set variable empty
     eval "$__resultvar=''"
     return 1
-}
-
-# Function to show profile information
-show_profile_info() {
-    echo -e "${CYAN}📋 Available Profiles:${NC}"
-    echo ""
-    echo -e "${GREEN}1) Minimal Profile${NC}"
-    echo -e "   📦 Tools: git, tmux"
-    echo -e "   🎯 Perfect for: Servers, learning, minimalists"
-    echo -e "   💾 Size: ~10MB"
-    echo ""
-    echo -e "${BLUE}2) Developer Profile${NC} ${YELLOW}(Recommended)${NC}"
-    echo -e "   📦 Tools: git, tmux, fzf, ripgrep, bat, zoxide, gh"
-    echo -e "   🎯 Perfect for: Daily development, most users"
-    echo -e "   💾 Size: ~50MB"
-    echo ""
-    echo -e "${CYAN}3) Power User Profile${NC}"
-    echo -e "   📦 Tools: Everything + exa, entr, delta, lazygit, advanced features"
-    echo -e "   🎯 Perfect for: Maximum productivity, power users"
-    echo -e "   💾 Size: ~100MB"
-    echo ""
-}
-
-# Function to prompt for profile selection
-select_profile() {
-    while true; do
-        show_profile_info
-        echo -e "${YELLOW}Which profile would you like to install?${NC}"
-        # Try to read interactively (prefers /dev/tty when stdin isn't a TTY)
-        if ! safe_read "Enter your choice (1-3, or 'h' for help): " choice; then
-            # No interactive TTY available — pick a sensible default (Power User)
-            echo -e "${YELLOW}No TTY available; defaulting to Power User profile (3). To force non-interactive install, run with --non-interactive.${NC}"
-            choice=3
-        fi
-        
-        case $choice in
-            1)
-                echo -e "${GREEN}✅ Selected: Minimal Profile${NC}"
-                export PROFILE_CHOICE="1"
-                break
-                ;;
-            2)
-                echo -e "${BLUE}✅ Selected: Developer Profile${NC}"
-                export PROFILE_CHOICE="2"
-                break
-                ;;
-            3)
-                echo -e "${CYAN}✅ Selected: Power User Profile${NC}"
-                export PROFILE_CHOICE="3"
-                break
-                ;;
-            h|H|help)
-                echo ""
-                echo -e "${CYAN}💡 Profile Details:${NC}"
-                echo ""
-                echo -e "${GREEN}Minimal:${NC} Just the essentials for command-line work"
-                echo -e "• git: Version control"
-                echo -e "• tmux: Terminal multiplexer"
-                echo ""
-                echo -e "${BLUE}Developer:${NC} Modern CLI tools for efficient development"
-                echo -e "• fzf: Fuzzy finder (Ctrl+R, Ctrl+T)"
-                echo -e "• ripgrep: Ultra-fast text search"
-                echo -e "• bat: Enhanced file viewer with syntax highlighting"
-                echo -e "• zoxide: Smart directory jumping"
-                echo -e "• gh: GitHub CLI"
-                echo ""
-                echo -e "${CYAN}Power User:${NC} Everything + advanced productivity tools"
-                echo -e "• exa: Modern 'ls' replacement"
-                echo -e "• delta: Beautiful git diffs"
-                echo -e "• lazygit: Visual git interface"
-                echo -e "• Advanced shell features and automation"
-                echo ""
-                continue
-                ;;
-            *)
-                echo -e "${RED}❌ Invalid choice. Please enter 1, 2, 3, or 'h' for help.${NC}"
-                echo ""
-                continue
-                ;;
-        esac
-    done
 }
 
 # Function to prompt for git credentials
@@ -181,31 +98,35 @@ install_chezmoi() {
         if command -v brew >/dev/null 2>&1; then
             brew install chezmoi
         else
-            curl -sfL https://git.io/chezmoi | sh
+            # Install chezmoi to ~/.local/bin explicitly
+            sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
         fi
     elif [[ "$OSTYPE" == "linux-gnu"* ]] || [[ -n "$WSL_DISTRO_NAME" ]]; then
         # Linux
-        curl -sfL https://git.io/chezmoi | sh
+        # Install chezmoi to ~/.local/bin explicitly
+        sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
         # Add to PATH if needed
-        if [[ ! "$PATH" =~ "$HOME/.local/bin" ]]; then
+        if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
             export PATH="$HOME/.local/bin:$PATH"
         fi
     else
         # Fallback
-        curl -sfL https://git.io/chezmoi | sh
+        sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+        if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+            export PATH="$HOME/.local/bin:$PATH"
+        fi
     fi
     
     echo -e "${GREEN}✅ chezmoi installed${NC}"
 }
 
-# Function to create a temporary chezmoi config for profile preselection
+# Function to create a temporary chezmoi config
 create_temp_config() {
     local temp_dir=$(mktemp -d)
     local config_file="$temp_dir/chezmoi.toml"
     
     cat > "$config_file" << EOF
 [data]
-    profile_preselected = "${PROFILE_CHOICE}"
     git_name_preselected = "${GIT_NAME}"
     git_email_preselected = "${GIT_EMAIL}"
 EOF
@@ -218,17 +139,42 @@ EOF
 init_dotfiles() {
     echo -e "${BLUE}🔧 Initializing dotfiles...${NC}"
     
+    # Resolve chezmoi binary robustly in case PATH/hash isn't updated yet
+    resolve_chezmoi_bin() {
+        if command -v chezmoi >/dev/null 2>&1; then
+            command -v chezmoi
+            return
+        fi
+        if [[ -x "$HOME/.local/bin/chezmoi" ]]; then
+            echo "$HOME/.local/bin/chezmoi"
+            return
+        fi
+        if [[ -x "./bin/chezmoi" ]]; then
+            echo "./bin/chezmoi"
+            return
+        fi
+        echo ""
+    }
+    
+    local CM_BIN
+    CM_BIN="$(resolve_chezmoi_bin)"
+    if [[ -z "$CM_BIN" ]]; then
+        echo -e "${RED}❌ Error: 'chezmoi' not found on PATH after installation.${NC}"
+        echo -e "${YELLOW}Tip:${NC} Ensure $HOME/.local/bin is in your PATH and re-run the installer."
+        exit 1
+    fi
+    
     if [[ -d "$HOME/.local/share/chezmoi" ]]; then
         echo -e "${YELLOW}⚠️  Dotfiles already initialized. Updating...${NC}"
-        chezmoi update
+        "$CM_BIN" update
     else
         echo -e "${BLUE}📥 Cloning and applying dotfiles...${NC}"
         
         # Use our temporary config if created
         if [[ -n "$CHEZMOI_CONFIG_FILE" ]]; then
-            chezmoi init --config "$CHEZMOI_CONFIG_FILE" --apply "https://github.com/${DOTFILES_REPO}.git"
+            "$CM_BIN" init --config "$CHEZMOI_CONFIG_FILE" --apply "https://github.com/${DOTFILES_REPO}.git"
         else
-            chezmoi init --apply "https://github.com/${DOTFILES_REPO}.git"
+            "$CM_BIN" init --apply "https://github.com/${DOTFILES_REPO}.git"
         fi
     fi
 }
@@ -247,30 +193,17 @@ show_completion_info() {
     echo -e "${GREEN}=========================${NC}"
     echo ""
     
-    case $PROFILE_CHOICE in
-        1)
-            echo -e "${GREEN}📦 Minimal Profile Installed${NC}"
-            echo -e "• git with smart aliases"
-            echo -e "• tmux with sensible defaults"
-            ;;
-        2)
-            echo -e "${BLUE}📦 Developer Profile Installed${NC}"
-            echo -e "• All minimal tools plus:"
-            echo -e "• fzf (Ctrl+R for history, Ctrl+T for files)"
-            echo -e "• ripgrep (rg command for fast search)"
-            echo -e "• bat (enhanced cat with syntax highlighting)"
-            echo -e "• zoxide (z command for smart directory jumping)"
-            echo -e "• GitHub CLI (gh command)"
-            ;;
-        3)
-            echo -e "${CYAN}📦 Power User Profile Installed${NC}"
-            echo -e "• All developer tools plus:"
-            echo -e "• exa (modern ls replacement)"
-            echo -e "• delta (beautiful git diffs)"
-            echo -e "• lazygit (visual git interface)"
-            echo -e "• Advanced shell features"
-            ;;
-    esac
+    echo -e "${CYAN}📦 Power User Environment Installed${NC}"
+    echo -e "• git with smart aliases and delta diffs"
+    echo -e "• tmux with sensible defaults"
+    echo -e "• fzf (Ctrl+R for history, Ctrl+T for files)"
+    echo -e "• ripgrep (rg command for fast search)"
+    echo -e "• bat (enhanced cat with syntax highlighting)"
+    echo -e "• zoxide (z command for smart directory jumping)"
+    echo -e "• exa (modern ls replacement)"
+    echo -e "• lazygit (visual git interface)"
+    echo -e "• GitHub CLI (gh command)"
+    echo -e "• Advanced shell features and modern CLI tools"
     
     echo ""
     echo -e "${BLUE}📚 Useful Commands:${NC}"
@@ -283,12 +216,12 @@ show_completion_info() {
     echo -e "${BLUE}🚀 Quick Start:${NC}"
     echo -e "• Open a new terminal to see your new environment"
     echo -e "• Type 'functions_help' to see available functions"
-    if [[ "$PROFILE_CHOICE" != "1" ]]; then
-        echo -e "• Try 'Ctrl+R' for fuzzy history search"
-        echo -e "• Use 'z <partial-path>' for smart directory jumping"
-    fi
+    echo -e "• Try 'Ctrl+R' for fuzzy history search"
+    echo -e "• Use 'z <partial-path>' for smart directory jumping"
+    echo -e "• Use 'exa -la' for modern directory listing"
+    echo -e "• Use 'lazygit' for visual git interface"
     echo ""
-    echo -e "${GREEN}✨ Your development environment is ready!${NC}"
+    echo -e "${GREEN}✨ Your power user development environment is ready!${NC}"
 }
 
 # Main installation flow
@@ -296,20 +229,14 @@ main() {
     # Check for Windows (suggest PowerShell)
     if [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "msys" ]]; then
         echo -e "${RED}❌ For Windows, please use PowerShell instead:${NC}"
-        echo -e "${BLUE}irm https://raw.githubusercontent.com/${DOTFILES_REPO}/main/install.ps1 | iex${NC}"
+        echo -e "${BLUE}irm https://raw.githubusercontent.com/${DOTFILES_REPO}/main/scripts/install/windows/install-windows.ps1 | iex${NC}"
         exit 1
     fi
     
     # Trap to ensure cleanup
     trap cleanup EXIT
     
-    # Profile selection: default to Power User (3) unless the user requests choosing a profile
-    # To force an interactive profile choice, run the installer with --choose-profile
-    if [[ "${1:-}" == "--choose-profile" ]] || [[ "${CHOOSE_PROFILE:-}" == "1" ]]; then
-        select_profile
-    else
-        echo -e "${YELLOW}Using profile ${PROFILE_CHOICE} (default: Power User). To choose a different profile interactively, re-run with --choose-profile or set PROFILE_CHOICE environment variable.${NC}"
-    fi
+    echo -e "${CYAN}Installing power user development environment...${NC}"
     
     # Git credentials
     prompt_git_credentials
@@ -332,10 +259,8 @@ main() {
 
 # Handle non-interactive mode (for CI/testing)
 if [[ "${1:-}" == "--non-interactive" ]]; then
-    # Default non-interactive profile is Power User (3) unless explicitly provided
-    export PROFILE_CHOICE="${2:-3}"
-    export GIT_NAME="${3:-Test User}"
-    export GIT_EMAIL="${4:-test@example.com}"
+    export GIT_NAME="${2:-Test User}"
+    export GIT_EMAIL="${3:-test@example.com}"
     echo -e "${YELLOW}Running in non-interactive mode...${NC}"
     install_chezmoi
     create_temp_config

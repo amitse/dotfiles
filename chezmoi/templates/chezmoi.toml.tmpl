@@ -1,8 +1,3 @@
-{{- $profile := promptString "profile" "Choose your profile:\n  1) minimal - Just git and tmux basics\n  2) developer - + modern CLI tools (fzf, ripgrep, bat, zoxide)\n  3) power-user - Everything (recommended)\nEnter choice (1-3)" "2" -}}
-
-{{- $profileMap := dict "1" "minimal" "2" "developer" "3" "power-user" -}}
-{{- $selectedProfile := get $profileMap $profile | default "developer" -}}
-
 {{- $gitName := promptString "git_name" "Git user name" (.chezmoi.username | default "Your Name") -}}
 {{- $gitEmail := promptString "git_email" "Git email address" "" -}}
 
@@ -11,7 +6,7 @@
 {{- $selectedSecretsBackend := get $secretsMap $secretsBackend | default "env" -}}
 
 [data]
-    profile = "{{ $selectedProfile }}"
+    profile = "power-user"
     
     [data.user]
         name = "{{ $gitName }}"
@@ -26,38 +21,16 @@
         {{- end }}
     
     [data.features]
-        {{- if eq $selectedProfile "minimal" }}
-        modern_cli = false
-        developer_tools = false
-        advanced_git = false
-        powerline_prompt = false
-        github_integration = false
-        {{- else if eq $selectedProfile "developer" }}
-        modern_cli = true
-        developer_tools = true
-        advanced_git = true
-        powerline_prompt = false
-        github_integration = true
-        {{- else if eq $selectedProfile "power-user" }}
         modern_cli = true
         developer_tools = true
         advanced_git = true
         powerline_prompt = true
         github_integration = true
         auto_updates = true
-        {{- end }}
     
     [data.tools]
-        {{- if eq $selectedProfile "minimal" }}
-        essential = ["git", "tmux"]
-        optional = []
-        {{- else if eq $selectedProfile "developer" }}
-        essential = ["git", "tmux", "fzf", "ripgrep", "bat", "zoxide"]
-        optional = ["gh", "exa"]
-        {{- else if eq $selectedProfile "power-user" }}
         essential = ["git", "tmux", "fzf", "ripgrep", "bat", "zoxide", "exa", "entr", "gh", "delta", "fd"]
         optional = ["lazygit", "gitui", "bottom", "dust"]
-        {{- end }}
     
     [data.paths]
         workspace = "{{ if eq .chezmoi.os "windows" }}C:\\Workspace{{ else }}~/workspace{{ end }}"

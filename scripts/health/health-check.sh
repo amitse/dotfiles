@@ -67,8 +67,8 @@ check_chezmoi() {
             return 1
         fi
     else
-        log_error "chezmoi not installed"
-        log_info "Install with: curl -fsSL https://get.chezmoi.io | sh"
+    log_error "chezmoi not installed"
+    log_info "Install with: sh -c \"$(curl -fsLS get.chezmoi.io)\" -- -b \"$HOME/.local/bin\""
         return 1
     fi
 }

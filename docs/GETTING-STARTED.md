@@ -7,35 +7,30 @@ Welcome to your personal dotfiles repository! This guide will get you up and run
 **One command to rule them all:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/amitse/dotfiles/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/amitse/dotfiles/main/scripts/install/unix/install-unix.sh | bash
 ```
 
 That's it! The installer will:
 1. Detect your operating system
-2. Ask you to choose a profile (minimal/developer/power-user)
-3. Install chezmoi and required tools
-4. Apply your dotfiles configuration
+2. Install chezmoi and required tools
+3. Apply your power user dotfiles configuration
 
 ## 📋 What Gets Installed
 
-### All Profiles Include:
-- ✅ **Git** - Version control with smart aliases
+### Complete Power User Environment:
+- ✅ **Git** - Version control with smart aliases and delta diffs
 - ✅ **tmux** - Terminal multiplexer with sensible defaults
-- ✅ **Cross-platform clipboard integration**
-
-### Developer Profile Adds:
 - ✅ **fzf** - Fuzzy finder for files and commands
 - ✅ **ripgrep (rg)** - Ultra-fast text search
 - ✅ **bat** - Enhanced `cat` with syntax highlighting
 - ✅ **zoxide** - Smart directory jumping
-- ✅ **GitHub CLI** - GitHub integration
-
-### Power User Profile Adds:
-- ✅ **All developer tools plus:**
 - ✅ **exa** - Modern `ls` replacement
 - ✅ **entr** - File watcher for automation
 - ✅ **delta** - Better git diffs
-- ✅ **Advanced shell features**
+- ✅ **lazygit** - Visual git interface
+- ✅ **GitHub CLI** - GitHub integration
+- ✅ **Cross-platform clipboard integration**
+- ✅ **Advanced shell features and modern CLI tools**
 
 ## 🎯 First Steps After Installation
 
@@ -64,7 +59,7 @@ git co main             # Checkout main branch
 git cam "message"       # Commit all with message
 ```
 
-### 3. Explore Modern CLI Tools (Developer/Power User)
+### 3. Explore Modern CLI Tools
 
 **Fuzzy Finding:**
 ```bash
@@ -166,7 +161,6 @@ chezmoi update
 
 - **[Customization Guide](CUSTOMIZATION.md)** - Deep customization options
 - **[Troubleshooting](TROUBLESHOOTING.md)** - Solve common problems  
-- **[Profiles Guide](PROFILES.md)** - Understanding profile differences
 - **[Advanced Usage](ADVANCED.md)** - Power user features
 
 ## 🎉 Tips for Daily Use

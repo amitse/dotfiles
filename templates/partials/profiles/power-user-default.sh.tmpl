@@ -1,0 +1,565 @@
+# Power User Configuration - Default Environment
+# Maximum productivity with advanced features and comprehensive tooling
+
+# Advanced environment setup
+export EDITOR="${EDITOR:-{{ .editor.default }}}"
+export VISUAL="${VISUAL:-$EDITOR}"
+export PAGER="${PAGER:-bat}"
+export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+
+# Advanced aliases and shortcuts
+alias e='${EDITOR}'
+alias v='vim'
+alias reload='exec ${SHELL} -l'
+alias cls='clear'
+
+# Comprehensive file operations
+{{- if lookPath "exa" }}
+alias ls='exa --icons --group-directories-first'
+alias ll='exa -l --icons --git --group-directories-first'
+alias la='exa -la --icons --git --group-directories-first'
+alias tree='exa --tree --icons --group-directories-first'
+alias lt='exa --tree --level=2 --icons'
+alias llt='exa --tree --level=3 --icons -l'
+{{- else }}
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+{{- end }}
+
+# Enhanced text operations
+{{- if lookPath "bat" }}
+alias cat='bat'
+alias ccat='command cat'  # Original cat when needed
+{{- end }}
+
+{{- if lookPath "rg" }}
+alias grep='rg'
+alias cgrep='command grep'  # Original grep when needed
+{{- end }}
+
+# Directory navigation
+{{- if lookPath "zoxide" }}
+alias cd='z'
+alias ccd='command cd'  # Original cd when needed
+{{- end }}
+
+# Git power aliases (comprehensive set)
+alias g='git'
+alias ga='git add'
+alias gaa='git add .'
+alias gapa='git add --patch'
+alias gau='git add --update'
+alias gav='git add --verbose'
+
+alias gb='git branch'
+alias gba='git branch -a'
+alias gbd='git branch -d'
+alias gbD='git branch -D'
+alias gbl='git blame -b -w'
+alias gbnm='git branch --no-merged'
+alias gbr='git branch --remote'
+alias gbs='git bisect'
+alias gbsb='git bisect bad'
+alias gbsg='git bisect good'
+alias gbsr='git bisect reset'
+alias gbss='git bisect start'
+
+alias gc='git commit -v'
+alias gc!='git commit -v --amend'
+alias gcn!='git commit -v --no-edit --amend'
+alias gca='git commit -v -a'
+alias gca!='git commit -v -a --amend'
+alias gcan!='git commit -v -a --no-edit --amend'
+alias gcans!='git commit -v -a -s --no-edit --amend'
+alias gcam='git commit -a -m'
+alias gcsm='git commit -s -m'
+alias gcb='git checkout -b'
+alias gcf='git config --list'
+alias gcl='git clone --recurse-submodules'
+alias gclean='git clean -id'
+alias gpristine='git reset --hard && git clean -dffx'
+alias gcm='git checkout main || git checkout master'
+alias gcd='git checkout develop'
+alias gcmsg='git commit -m'
+alias gco='git checkout'
+alias gcount='git shortlog -sn'
+alias gcp='git cherry-pick'
+alias gcpa='git cherry-pick --abort'
+alias gcpc='git cherry-pick --continue'
+alias gcs='git commit -S'
+
+alias gd='git diff'
+alias gdca='git diff --cached'
+alias gdcw='git diff --cached --word-diff'
+alias gdct='git describe --tags $(git rev-list --tags --max-count=1)'
+alias gds='git diff --staged'
+alias gdt='git diff-tree --no-commit-id --name-only -r'
+alias gdw='git diff --word-diff'
+
+alias gf='git fetch'
+alias gfa='git fetch --all --prune'
+alias gfo='git fetch origin'
+
+alias gfg='git ls-files | grep'
+
+alias gg='git gui citool'
+alias gga='git gui citool --amend'
+
+alias ggpur='ggu'
+alias ggpull='git pull origin "$(git_current_branch)"'
+alias ggpush='git push origin "$(git_current_branch)"'
+
+alias ggsup='git branch --set-upstream-to=origin/$(git_current_branch)'
+alias gpsup='git push --set-upstream origin $(git_current_branch)'
+
+alias ghh='git help'
+
+alias gignore='git update-index --assume-unchanged'
+alias gignored='git ls-files -v | grep "^[[:lower:]]"'
+alias git-svn-dcommit-push='git svn dcommit && git push github master:svntrunk'
+
+alias gk='\gitk --all --branches'
+alias gke='\gitk --all $(git log -g --pretty=%h)'
+
+alias gl='git pull'
+alias glg='git log --stat'
+alias glgp='git log --stat -p'
+alias glgg='git log --graph'
+alias glgga='git log --graph --decorate --all'
+alias glgm='git log --graph --max-count=10'
+alias glo='git log --oneline --decorate'
+alias glol="git log --graph --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'"
+alias glols="git log --graph --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --stat"
+alias glod="git log --graph --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ad) %C(bold blue)<%an>%Creset'"
+alias glods="git log --graph --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ad) %C(bold blue)<%an>%Creset' --date=short"
+alias glola="git log --graph --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --all"
+alias glog='git log --oneline --decorate --graph'
+alias gloga='git log --oneline --decorate --graph --all'
+alias glp="_git_log_prettily"
+
+alias gm='git merge'
+alias gmom='git merge origin/master'
+alias gmt='git mergetool --no-prompt'
+alias gmtvim='git mergetool --no-prompt --tool=vimdiff'
+alias gmum='git merge upstream/master'
+alias gma='git merge --abort'
+
+alias gp='git push'
+alias gpd='git push --dry-run'
+alias gpf='git push --force-with-lease'
+alias gpf!='git push --force'
+alias gpoat='git push origin --all && git push origin --tags'
+alias gpu='git push upstream'
+alias gpv='git push -v'
+
+alias gr='git remote'
+alias gra='git remote add'
+alias grb='git rebase'
+alias grba='git rebase --abort'
+alias grbc='git rebase --continue'
+alias grbd='git rebase develop'
+alias grbi='git rebase -i'
+alias grbm='git rebase master'
+alias grbs='git rebase --skip'
+alias grev='git revert'
+alias grh='git reset'
+alias grhh='git reset --hard'
+alias groh='git reset origin/$(git_current_branch) --hard'
+alias grm='git rm'
+alias grmc='git rm --cached'
+alias grmv='git remote rename'
+alias grrm='git remote remove'
+alias grs='git restore'
+alias grset='git remote set-url'
+alias grss='git restore --source'
+alias grt='cd "$(git rev-parse --show-toplevel)"'
+alias gru='git reset --'
+alias grup='git remote update'
+alias grv='git remote -v'
+
+alias gsb='git status -sb'
+alias gsd='git svn dcommit'
+alias gsh='git show'
+alias gsi='git submodule init'
+alias gsps='git show --pretty=short --show-signature'
+alias gsr='git svn rebase'
+alias gss='git status -s'
+alias gst='git status'
+
+alias gsta='git stash push'
+alias gstaa='git stash apply'
+alias gstc='git stash clear'
+alias gstd='git stash drop'
+alias gstl='git stash list'
+alias gstp='git stash pop'
+alias gsts='git stash show --text'
+alias gstu='git stash --include-untracked'
+alias gstall='git stash --all'
+
+alias gsu='git submodule update'
+alias gsw='git switch'
+alias gswc='git switch -c'
+
+alias gts='git tag -s'
+alias gtv='git tag | sort -V'
+alias gtl='gtl(){ git tag --sort=-version:refname -n -l "${1}*" }; noglob gtl'
+
+alias gunignore='git update-index --no-assume-unchanged'
+alias gunwip='git log -n 1 | grep -q -c "\-\-wip\-\-" && git reset HEAD~1'
+alias gup='git pull --rebase'
+alias gupv='git pull --rebase -v'
+alias gupa='git pull --rebase --autostash'
+alias gupav='git pull --rebase --autostash -v'
+alias glum='git pull upstream master'
+
+alias gwch='git whatchanged -p --abbrev-commit --pretty=medium'
+alias gwip='git add -A; git rm $(git ls-files --deleted) 2> /dev/null; git commit --no-verify --no-gpg-sign -m "--wip-- [skip ci]"'
+
+# Semantic commit helpers
+gfeat_commit() {
+    git commit -m "feat: $*"
+}
+
+gfix_commit() {
+    git commit -m "fix: $*"
+}
+
+gdocs_commit() {
+    git commit -m "docs: $*"
+}
+
+gstyle_commit() {
+    git commit -m "style: $*"
+}
+
+grefactor_commit() {
+    git commit -m "refactor: $*"
+}
+
+gtest_commit() {
+    git commit -m "test: $*"
+}
+
+gchore_commit() {
+    git commit -m "chore: $*"
+}
+
+# Feature branch workflow
+gfeat() {
+    git checkout -b "feature/$1"
+}
+
+gfix() {
+    git checkout -b "fix/$1"
+}
+
+# Docker power commands
+{{- if lookPath "docker" }}
+alias d='docker'
+alias dc='docker-compose'
+alias dcup='docker-compose up'
+alias dcdown='docker-compose down'
+alias dcbuild='docker-compose build'
+alias dclogs='docker-compose logs'
+alias dcps='docker-compose ps'
+alias dcexec='docker-compose exec'
+
+# Docker shortcuts
+alias dps='docker ps'
+alias dpsa='docker ps -a'
+alias di='docker images'
+alias dil='docker image ls'
+alias drm='docker rm'
+alias drmi='docker rmi'
+alias dstop='docker stop'
+alias dstart='docker start'
+alias drestart='docker restart'
+alias dlogs='docker logs'
+alias dexec='docker exec -it'
+alias drun='docker run -it --rm'
+alias dbuild='docker build'
+alias dpull='docker pull'
+alias dpush='docker push'
+alias dtag='docker tag'
+
+# Docker system commands
+alias dcleanup='docker system prune -af && docker volume prune -f'
+alias dkill='docker kill $(docker ps -q)'
+alias dstopall='docker stop $(docker ps -q)'
+alias drmall='docker rm $(docker ps -aq)'
+alias drmiall='docker rmi $(docker images -q)'
+{{- end }}
+
+# Node.js development
+{{- if lookPath "npm" }}
+alias ni='npm install'
+alias nis='npm install --save'
+alias nid='npm install --save-dev'
+alias nig='npm install --global'
+alias nr='npm run'
+alias nrs='npm run start'
+alias nrb='npm run build'
+alias nrt='npm run test'
+alias nrd='npm run dev'
+alias nrl='npm run lint'
+alias nrc='npm run clean'
+alias ns='npm start'
+alias nt='npm test'
+alias nb='npm run build'
+alias nw='npm run watch'
+alias nlg='npm list -g --depth=0'
+alias nup='npm update'
+alias ncache='npm cache clean --force'
+{{- end }}
+
+# Python development
+{{- if lookPath "python" }}
+alias py='python3'
+alias pip='pip3'
+alias venv='python3 -m venv'
+alias activate='source venv/bin/activate'
+alias deactivate='deactivate'
+alias pipi='pip install'
+alias pipir='pip install -r requirements.txt'
+alias pipf='pip freeze'
+alias pipl='pip list'
+alias pips='pip show'
+alias pipu='pip install --upgrade'
+alias pipdev='pip install -e .'
+{{- end }}
+
+# System monitoring
+{{- if lookPath "btop" }}
+alias top='btop'
+{{- else if lookPath "htop" }}
+alias top='htop'
+{{- end }}
+
+{{- if lookPath "duf" }}
+alias df='duf'
+{{- end }}
+
+{{- if lookPath "dust" }}
+alias du='dust'
+{{- end }}
+
+# Network utilities
+alias myip='curl -s ifconfig.me'
+alias localip='hostname -I | cut -d" " -f1'
+alias ports='netstat -tulanp'
+alias listening='netstat -tlnp'
+
+# File watching utilities
+{{- if lookPath "entr" }}
+watchtest() {
+    find . -name "*.${1:-py}" | entr -c pytest
+}
+
+watchbuild() {
+    find . -name "*.${1:-js}" | entr -c npm run build
+}
+
+watchlint() {
+    find . -name "*.${1:-py}" | entr -c flake8
+}
+{{- end }}
+
+# Advanced project functions
+mkproj() {
+    local name="$1"
+    local template="${2:-basic}"
+    
+    if [[ -z "$name" ]]; then
+        echo "Usage: mkproj <project-name> [template]"
+        echo "Templates: basic, node, python, react, docker"
+        return 1
+    fi
+    
+    mkdir -p "$name"
+    cd "$name"
+    
+    case "$template" in
+        "node")
+            npm init -y
+            echo "node_modules/\n.env\n*.log" > .gitignore
+            mkdir -p src tests
+            ;;
+        "python")
+            python3 -m venv venv
+            echo "venv/\n__pycache__/\n*.pyc\n.env" > .gitignore
+            mkdir -p src tests
+            touch requirements.txt setup.py
+            ;;
+        "react")
+            npx create-react-app .
+            ;;
+        "docker")
+            touch Dockerfile docker-compose.yml .dockerignore
+            echo ".git\n.gitignore\nREADME.md\nDockerfile\n.dockerignore" > .dockerignore
+            ;;
+        *)
+            touch README.md
+            echo "# $name\n\nProject description" > README.md
+            ;;
+    esac
+    
+    git init
+    git add .
+    git commit -m "feat: initial project setup"
+    
+    echo "✅ Project '$name' created with '$template' template"
+}
+
+# Tmux development session
+tmux_dev() {
+    local session_name="${1:-dev}"
+    
+    if tmux has-session -t "$session_name" 2>/dev/null; then
+        tmux attach-session -t "$session_name"
+    else
+        tmux new-session -d -s "$session_name"
+        tmux split-window -h -t "$session_name"
+        tmux split-window -v -t "$session_name":0.1
+        tmux send-keys -t "$session_name":0.0 'nvim .' C-m
+        tmux send-keys -t "$session_name":0.1 'git status' C-m
+        tmux send-keys -t "$session_name":0.2 'npm run dev || python manage.py runserver || echo "No dev server command found"' C-m
+        tmux select-pane -t "$session_name":0.0
+        tmux attach-session -t "$session_name"
+    fi
+}
+
+# System information
+sysmon() {
+    echo "=== System Overview ==="
+    {{- if lookPath "neofetch" }}
+    neofetch
+    {{- else }}
+    echo "Hostname: $(hostname)"
+    echo "OS: $(uname -s)"
+    echo "Kernel: $(uname -r)"
+    echo "Uptime: $(uptime)"
+    {{- end }}
+    
+    echo -e "\n=== Disk Usage ==="
+    {{- if lookPath "duf" }}
+    duf
+    {{- else }}
+    df -h
+    {{- end }}
+    
+    echo -e "\n=== Memory Usage ==="
+    {{- if lookPath "free" }}
+    free -h
+    {{- else }}
+    top -l 1 | grep PhysMem
+    {{- end }}
+    
+    echo -e "\n=== Top Processes ==="
+    {{- if lookPath "btop" }}
+    echo "Run 'btop' for interactive view"
+    {{- else if lookPath "htop" }}
+    echo "Run 'htop' for interactive view"
+    {{- else }}
+    ps aux | head -10
+    {{- end }}
+}
+
+# Project switcher with preview
+proj() {
+    local proj_dir="${PROJECTS_DIR:-$HOME/projects}"
+    
+    if [[ ! -d "$proj_dir" ]]; then
+        echo "Projects directory not found: $proj_dir"
+        echo "Set PROJECTS_DIR environment variable or create ~/projects"
+        return 1
+    fi
+    
+    local project
+    {{- if lookPath "fzf" }}
+    project=$(find "$proj_dir" -mindepth 1 -maxdepth 2 -type d -name ".git" | \
+        sed "s|/.git||" | \
+        sed "s|$proj_dir/||" | \
+        fzf --preview "echo {} && echo '---' && find $proj_dir/{} -name 'README*' -exec head -10 {} \; 2>/dev/null")
+    {{- else }}
+    echo "Available projects:"
+    find "$proj_dir" -mindepth 1 -maxdepth 2 -type d -name ".git" | sed "s|/.git||" | sed "s|$proj_dir/||"
+    read -p "Enter project name: " project
+    {{- end }}
+    
+    if [[ -n "$project" ]]; then
+        cd "$proj_dir/$project"
+        {{- if lookPath "eza" }}
+        eza -la --git
+        {{- else }}
+        ls -la
+        {{- end }}
+    fi
+}
+
+# Config file editor
+conf() {
+    local config_file
+    
+    {{- if lookPath "fzf" }}
+    config_file=$(find ~/.config -name "*.conf" -o -name "*.toml" -o -name "*.yaml" -o -name "*.yml" -o -name "*.json" | \
+        fzf --preview 'bat {}' --height 50%)
+    {{- else }}
+    echo "Common config files:"
+    find ~/.config -name "*.conf" -o -name "*.toml" -o -name "*.yaml" -o -name "*.yml" -o -name "*.json" | head -20
+    read -p "Enter config file path: " config_file
+    {{- end }}
+    
+    if [[ -n "$config_file" && -f "$config_file" ]]; then
+        ${EDITOR:-vim} "$config_file"
+    fi
+}
+
+# Power user help system
+functions_help() {
+    echo "⚡ Power User Environment Active"
+    echo "Available features and functions:"
+    echo ""
+    echo "🗂️  File Operations:"
+    echo "  • Enhanced ls/tree with icons and git status (exa)"
+    echo "  • Syntax highlighting with bat"
+    echo "  • Ultra-fast search with ripgrep"
+    echo "  • Modern find with fd"
+    echo ""
+    echo "🔧 Git Workflow:"
+    echo "  • Comprehensive git aliases (50+ shortcuts)"
+    echo "  • Semantic commit helpers (gfeat_commit, gfix_commit)"
+    echo "  • Branch management (gfeat, gfix, gclean)"
+    {{- if lookPath "lazygit" }}
+    echo "  • Git TUI with lazygit (lg)"
+    {{- end }}
+    echo ""
+    echo "🚀 Development:"
+    echo "  • Advanced project creation (mkproj <name> <template>)"
+    echo "  • Multi-window tmux sessions (tmux_dev)"
+    echo "  • File watching (watchtest, watchbuild, watchlint)"
+    {{- if lookPath "docker" }}
+    echo "  • Docker power commands (drun, dbuild, dcup)"
+    {{- end }}
+    echo ""
+    echo "🔍 Navigation:"
+    echo "  • Project switcher with preview (proj)"
+    echo "  • Config file editor (conf)"
+    echo "  • Fuzzy everything (Ctrl+R, Ctrl+T)"
+    echo ""
+    echo "📊 Monitoring:"
+    echo "  • System monitoring (sysmon)"
+    echo "  • Process management with modern tools"
+    echo "  • Network utilities (myip, localip, ports)"
+    echo ""
+    echo "💡 Run 'functions_help' anytime to see this message"
+}
+
+# Automatically show help on first load (optional)
+if [[ -z "$DOTFILES_HELP_SHOWN" ]]; then
+    export DOTFILES_HELP_SHOWN=1
+    echo ""
+    echo "✨ Welcome to your power user development environment!"
+    echo "Type 'functions_help' to see all available features."
+    echo ""
+fi

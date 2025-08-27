@@ -53,15 +53,13 @@ setup_nodejs_tools() {
         "serve"            # Production file server
     )
     
-    {{- if eq .profile "developer" "power-user" }}
-    # Additional tools for developer/power-user profiles
+    # Additional tools for power user environment
     npm_packages+=(
         "webpack-cli"      # Module bundler
         "create-react-app" # React project generator
         "vue-cli"          # Vue.js project generator
         "@angular/cli"     # Angular CLI
     )
-    {{- end }}
     
     for package in "${npm_packages[@]}"; do
         if ! npm list -g "$package" >/dev/null 2>&1; then
@@ -101,8 +99,7 @@ setup_python_tools() {
         "ipython"          # Enhanced Python shell
     )
     
-    {{- if eq .profile "developer" "power-user" }}
-    # Additional tools for developer/power-user profiles
+    # Additional tools for power user environment
     pip_packages+=(
         "jupyter"          # Jupyter notebooks
         "pandas"           # Data analysis
@@ -112,7 +109,6 @@ setup_python_tools() {
         "fastapi"          # Modern web framework
         "sqlalchemy"       # ORM
     )
-    {{- end }}
     
     for package in "${pip_packages[@]}"; do
         if ! $python_cmd -m pip show "$package" >/dev/null 2>&1; then
@@ -173,15 +169,13 @@ setup_rust_tools() {
         "hyperfine"        # Benchmarking
     )
     
-    {{- if eq .profile "power-user" }}
-    # Additional tools for power users
+    # Additional tools for power user environment
     cargo_packages+=(
         "cargo-edit"       # Cargo subcommands
         "cargo-watch"      # File watching
         "cargo-expand"     # Macro expansion
         "cargo-outdated"   # Dependency checking
     )
-    {{- end }}
     
     for package in "${cargo_packages[@]}"; do
         if ! cargo install --list | grep -q "^$package"; then
@@ -339,20 +333,8 @@ main() {
     echo "===================================="
     echo ""
     
-    # Profile-specific setup
-    {{- if eq .profile "minimal" }}
-    yellow "📦 Minimal profile detected - installing essential tools only"
-    setup_git_config
-    setup_shell_integrations
-    {{- else if eq .profile "developer" }}
-    blue "👩‍💻 Developer profile detected - installing development tools"
-    setup_git_config
-    setup_nodejs_tools
-    setup_python_tools
-    setup_modern_cli_tools
-    setup_shell_integrations
-    {{- else if eq .profile "power-user" }}
-    blue "⚡ Power-user profile detected - installing comprehensive toolset"
+    # Power user environment setup
+    blue "⚡ Setting up comprehensive power user development environment"
     setup_git_config
     setup_nodejs_tools
     setup_python_tools
@@ -361,13 +343,6 @@ main() {
     setup_container_tools
     setup_modern_cli_tools
     setup_shell_integrations
-    {{- else }}
-    # Default/unknown profile
-    blue "🔧 Setting up essential tools for unknown profile"
-    setup_git_config
-    setup_modern_cli_tools
-    setup_shell_integrations
-    {{- end }}
     
     echo ""
     green "✅ Additional development tools setup complete!"

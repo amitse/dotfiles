@@ -236,20 +236,16 @@ export HISTTIMEFORMAT="%Y-%m-%d %H:%M:%S "
 export TMUX_PLUGIN_MANAGER_PATH="$XDG_DATA_HOME/tmux/plugins"
 {{- end }}
 
-{{- /* Tool-specific exports based on profile */ -}}
-{{- if eq .profile "developer" }}
-# Developer profile specific exports
+{{- /* Tool-specific exports */ -}}
+# Power user environment exports
 export NODE_ENV="development"
 export RAILS_ENV="development"
 export FLASK_ENV="development"
 export DEBUG=1
-{{- else if eq .profile "power-user" }}
-# Power user profile specific exports
 export ANSIBLE_HOST_KEY_CHECKING=False
 export ANSIBLE_NOCOWS=1
 export DOCKER_BUILDKIT=1
 export BUILDX_EXPERIMENTAL=1
-{{- end }}
 
 {{- /* Custom user exports */ -}}
 {{- range $key, $value := .exports }}

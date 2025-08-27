@@ -30,14 +30,14 @@ jobs:
       - name: Lint install scripts specifically
         run: |
           echo "🔍 Linting install scripts..."
-          shellcheck install.sh
-          shellcheck scripts/health-check.sh
+          shellcheck scripts/install/unix/install-unix.sh
+          shellcheck scripts/health/health-check.sh
 
       - name: Check script executability
         run: |
           echo "🔧 Checking script permissions..."
-          test -x install.sh || (echo "❌ install.sh is not executable" && exit 1)
-          test -x scripts/health-check.sh || (echo "❌ health-check.sh is not executable" && exit 1)
+          test -x scripts/install/unix/install-unix.sh || (echo "❌ install-unix.sh is not executable" && exit 1)
+          test -x scripts/health/health-check.sh || (echo "❌ health-check.sh is not executable" && exit 1)
           echo "✅ All scripts are executable"
 
       - name: Validate Markdown files
@@ -50,21 +50,18 @@ jobs:
   template-validation:
     name: Template Validation
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        profile: [minimal, developer, power-user]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Install chezmoi
         run: |
-          curl -sfL https://git.io/chezmoi | sh
-          sudo mv ./bin/chezmoi /usr/local/bin/
+          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$PWD/bin"
+          sudo mv "$PWD/bin/chezmoi" /usr/local/bin/
 
       - name: Validate templates render without errors
         run: |
-          echo "🔧 Testing template rendering for ${{ matrix.profile }} profile..."
+          echo "🔧 Testing template rendering..."
           
           # Create a temporary test directory
           TEST_DIR=$(mktemp -d)
@@ -73,7 +70,7 @@ jobs:
           # Initialize chezmoi with test data
           cat > chezmoi.toml << EOF
           [data]
-              profile = "${{ matrix.profile }}"
+              profile = "power-user"
               
               [data.user]
                   name = "Test User"
@@ -86,8 +83,9 @@ jobs:
                   modern_cli = true
                   developer_tools = true
                   advanced_git = true
-                  powerline_prompt = false
+                  powerline_prompt = true
                   github_integration = true
+                  auto_updates = true
           EOF
           
           # Test template rendering
@@ -96,14 +94,13 @@ jobs:
           # Attempt to apply (dry run)
           chezmoi apply --dry-run --verbose
           
-          echo "✅ Templates render successfully for ${{ matrix.profile }} profile"
+          echo "✅ Templates render successfully"
 
   cross-platform-test:
     name: Cross-Platform Install Test
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        profile: [minimal, developer]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
@@ -111,17 +108,13 @@ jobs:
 
       - name: Test install script (non-interactive)
         run: |
-          echo "🧪 Testing install script on ${{ matrix.os }} with ${{ matrix.profile }} profile..."
+          echo "🧪 Testing install script on ${{ matrix.os }}..."
           
           # Make the script executable
-          chmod +x install.sh
+          chmod +x scripts/install/unix/install-unix.sh
           
-          # Run in non-interactive mode
-          if [[ "${{ matrix.profile }}" == "minimal" ]]; then
-            ./install.sh --non-interactive 1 "Test User" "test@example.com"
-          else
-            ./install.sh --non-interactive 2 "Test User" "test@example.com"
-          fi
+          # Run in non-interactive mode (power user by default)
+          ./scripts/install/unix/install-unix.sh --non-interactive "Test User" "test@example.com"
           
           # Verify chezmoi was installed
           command -v chezmoi || (echo "❌ chezmoi not found in PATH" && exit 1)
@@ -176,10 +169,6 @@ jobs:
             missing_docs="$missing_docs docs/GETTING-STARTED.md"
           fi
           
-          if [[ ! -f "docs/PROFILES.md" ]]; then
-            missing_docs="$missing_docs docs/PROFILES.md"
-          fi
-          
           if [[ ! -f "PLAN.md" ]]; then
             missing_docs="$missing_docs PLAN.md"
           fi
@@ -200,13 +189,13 @@ jobs:
 
       - name: Install chezmoi
         run: |
-          curl -sfL https://git.io/chezmoi | sh
-          sudo mv ./bin/chezmoi /usr/local/bin/
+          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$PWD/bin"
+          sudo mv "$PWD/bin/chezmoi" /usr/local/bin/
 
       - name: Run health check script
         run: |
-          chmod +x scripts/health-check.sh
-          ./scripts/health-check.sh
+          chmod +x scripts/health/health-check.sh
+          ./scripts/health/health-check.sh
 
       - name: Validate repository structure
         run: |
@@ -222,7 +211,7 @@ jobs:
           done
           
           # Check essential files exist
-          required_files=("install.sh" "install.ps1" "PLAN.md" "README.md")
+          required_files=("README.md")
           for file in "${required_files[@]}"; do
             if [[ ! -f "$file" ]]; then
               echo "❌ Required file missing: $file"

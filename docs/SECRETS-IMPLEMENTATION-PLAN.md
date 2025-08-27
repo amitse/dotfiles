@@ -125,12 +125,9 @@ GITHUB_TOKEN="{{ template "secret" "op://Personal/GitHub Token/credential" }}"
 {{- end }}
 
 # Development Database URLs
-{{- if eq .data.profile "developer" }}
 DATABASE_URL="{{ template "secret" "op://Development/Database/url" }}"
-{{- end }}
 
 # Cloud Provider Credentials
-{{- if eq .data.profile "power-user" }}
 AWS_ACCESS_KEY_ID="{{ template "secret" "op://AWS/Access Key/username" }}"
 AWS_SECRET_ACCESS_KEY="{{ template "secret" "op://AWS/Access Key/password" }}"
 {{- end }}
@@ -195,12 +192,8 @@ fi
 # Simple secret reference
 export GITHUB_TOKEN="{{ template "secret" "op://Personal/GitHub Token/credential" }}"
 
-# Conditional secrets based on profile
-{{- if eq .data.profile "power-user" }}
+# Production secrets
 export AWS_ACCESS_KEY="{{ template "secret" "op://AWS/Production/access_key" }}"
-{{- else }}
-export AWS_ACCESS_KEY="{{ template "secret" "op://AWS/Development/access_key" }}"
-{{- end }}
 
 # Fallback to environment variable
 export DATABASE_URL="{{ template "secret" "env://DATABASE_URL" }}"
@@ -248,5 +241,5 @@ done
 
 - Add secrets section to main README
 - Create detailed guide in `docs/SECRETS.md`
-- Update profile documentation with secret requirements
+- Update documentation with secret requirements
 - Add troubleshooting guide for common secret issues

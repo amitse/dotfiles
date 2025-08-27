@@ -18,6 +18,9 @@
 {{- /* Utility functions */ -}}
 {{ include "templates/partials/shell/functions.sh.tmpl" . }}
 
+{{- /* Power user configuration and aliases */ -}}
+{{ include "templates/partials/profiles/power-user-default.sh.tmpl" . }}
+
 # Zsh-specific configuration
 setopt SHARE_HISTORY          # Share history between sessions
 setopt HIST_VERIFY            # Show command before executing from history
@@ -112,11 +115,10 @@ if [ -f ~/.zshrc.local ]; then
     source ~/.zshrc.local
 fi
 
-# Welcome message (optional)
-{{- if eq .profile "developer" }}
-# Developer profile welcome
+# Welcome message
 if [[ -o interactive ]]; then
-    echo "🚀 Developer profile loaded"
+    echo "⚡ Power user development environment loaded"
+    echo "Type 'functions_help' for available functions"
     {{- if lookPath "git" }}
     echo "Git: $(git --version 2>/dev/null || echo 'not found')"
     {{- end }}
@@ -127,10 +129,3 @@ if [[ -o interactive ]]; then
     echo "Python: $(python3 --version 2>/dev/null || echo 'not found')"
     {{- end }}
 fi
-{{- else if eq .profile "power-user" }}
-# Power user profile welcome
-if [[ -o interactive ]]; then
-    echo "⚡ Power user profile loaded"
-    echo "Type 'functions_help' for available functions"
-fi
-{{- end }}

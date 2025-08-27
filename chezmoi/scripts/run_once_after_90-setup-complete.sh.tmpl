@@ -29,51 +29,29 @@ show_completion_message() {
     echo -e "${GREEN}🎉 Dotfiles setup completed successfully!${NC}"
     echo ""
     
-    local profile="{{ .profile }}"
-    
-    case "$profile" in
-        "minimal")
-            echo -e "${BLUE}📚 Minimal setup includes:${NC}"
-            echo "  • Git configuration with useful aliases"
-            echo "  • tmux with sensible defaults and cross-platform clipboard"
-            echo ""
-            log_tip "Try these commands:"
-            echo "  • tmux - start terminal multiplexer"
-            echo "  • git st - git status (alias)"
-            echo "  • git lg - pretty git log"
-            ;;
-        "developer")
-            echo -e "${BLUE}📚 Developer setup includes:${NC}"
-            echo "  • All minimal features plus:"
-            echo "  • Modern CLI tools (fzf, ripgrep, bat, zoxide)"
-            echo "  • Enhanced shell experience with smart aliases"
-            echo "  • GitHub CLI integration"
-            echo ""
-            log_tip "Try these enhanced commands:"
-            echo "  • Ctrl+R - fuzzy history search with fzf"
-            echo "  • Ctrl+T - fuzzy file finder"
-            echo "  • z <dir> - smart directory jumping with zoxide"
-            echo "  • bat <file> - syntax highlighted file viewing"
-            echo "  • rg <pattern> - ultra-fast text search"
-            ;;
-        "power-user")
-            echo -e "${BLUE}📚 Power user setup includes everything!${NC}"
-            echo ""
-            echo "🔧 Advanced features available:"
-            echo "  • All developer tools and more"
-            echo "  • Advanced git integration and aliases"
-            echo "  • Enhanced prompt with git status"
-            echo "  • Comprehensive tool aliases and functions"
-            echo ""
-            log_tip "Advanced commands to explore:"
-            echo "  • fe <pattern> - fuzzy file editor"
-            echo "  • fcd - fuzzy directory changer"
-            echo "  • glog - beautiful git log with graph"
-            echo "  • gclean - cleanup merged branches"
-            echo "  • fzf_rg - interactive search with preview"
-            ;;
-    esac
-    
+    echo -e "${BLUE}📚 Your setup includes everything!${NC}"
+    echo ""
+    echo "🔧 Advanced features available:"
+    echo "  • Git configuration with useful aliases"
+    echo "  • tmux with sensible defaults and cross-platform clipboard"
+    echo "  • Modern CLI tools (fzf, ripgrep, bat, zoxide)"
+    echo "  • Enhanced shell experience with smart aliases"
+    echo "  • GitHub CLI integration"
+    echo "  • Advanced git integration and aliases"
+    echo "  • Enhanced prompt with git status"
+    echo "  • Comprehensive tool aliases and functions"
+    echo ""
+    log_tip "Commands to explore:"
+    echo "  • Ctrl+R - fuzzy history search with fzf"
+    echo "  • Ctrl+T - fuzzy file finder"
+    echo "  • z <dir> - smart directory jumping with zoxide"
+    echo "  • bat <file> - syntax highlighted file viewing"
+    echo "  • rg <pattern> - ultra-fast text search"
+    echo "  • fe <pattern> - fuzzy file editor"
+    echo "  • fcd - fuzzy directory changer"
+    echo "  • glog - beautiful git log with graph"
+    echo "  • gclean - cleanup merged branches"
+    echo "  • fzf_rg - interactive search with preview"
     echo ""
     echo -e "${YELLOW}📋 Daily workflow commands:${NC}"
     echo "  • chezmoi edit <file>  - edit managed configuration files"
@@ -96,7 +74,6 @@ show_completion_message() {
     fi
     {{- end }}
     
-    {{- if ne .profile "minimal" }}
     {{- range .tools.optional }}
     if command -v "{{ . }}" >/dev/null 2>&1; then
         tools_available+=("{{ . }}")

@@ -48,26 +48,22 @@ install_tools() {
         {{- end }}
     )
     
-    # Optional tools for developer and power-user profiles
-    {{- if ne .profile "minimal" }}
+    # Optional tools
     local optional_tools=(
         {{- range .tools.optional }}
         "{{ . }}"
         {{- end }}
     )
-    {{- end }}
     
     # Install essential tools
     for tool in "${essential_tools[@]}"; do
         install_tool "$pm" "$tool" "essential"
     done
     
-    {{- if ne .profile "minimal" }}
     # Install optional tools (non-fatal if they fail)
     for tool in "${optional_tools[@]}"; do
         install_tool "$pm" "$tool" "optional"
     done
-    {{- end }}
 }
 
 # Install individual tool
@@ -189,10 +185,8 @@ main() {
         {{- range .tools.essential }}
         log_info "  - {{ . }}"
         {{- end }}
-        {{- if ne .profile "minimal" }}
         {{- range .tools.optional }}
         log_info "  - {{ . }} (optional)"
-        {{- end }}
         {{- end }}
         return 0
     fi

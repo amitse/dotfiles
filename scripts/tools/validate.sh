@@ -104,7 +104,7 @@ test_powershell_scripts() {
     echo -e "${BLUE}💻 Testing PowerShell script syntax...${NC}"
     
     if command -v pwsh >/dev/null 2>&1; then
-        if pwsh -Command "& { . '$REPO_ROOT/scripts/install/install-windows.ps1' -NonInteractive true -ErrorAction Stop }" -ErrorAction Stop; then
+        if pwsh -Command "& { . '$REPO_ROOT/scripts/install/windows/install-windows.ps1' -NonInteractive true -ErrorAction Stop }" -ErrorAction Stop; then
             echo -e "${GREEN}✅ install-windows.ps1 syntax valid${NC}"
         else
             echo -e "${RED}❌ install-windows.ps1 syntax error${NC}"
@@ -127,7 +127,7 @@ test_chezmoi_templates() {
         local temp_dir=$(mktemp -d)
         export PATH="$temp_dir:$PATH"
         
-        curl -sfL https://git.io/chezmoi | sh -s -- -b "$temp_dir"
+    sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$temp_dir"
         
         if ! command -v chezmoi >/dev/null 2>&1; then
             echo -e "${RED}❌ Failed to install chezmoi temporarily${NC}"
@@ -139,16 +139,13 @@ test_chezmoi_templates() {
     local test_dir=$(mktemp -d)
     cd "$test_dir"
     
-    # Test template rendering with different profiles
-    local profiles=("minimal" "developer" "power-user")
+    # Test template rendering with power user configuration
+    echo -e "${BLUE}  Testing template rendering...${NC}"
     
-    for profile in "${profiles[@]}"; do
-        echo -e "${BLUE}  Testing $profile profile...${NC}"
-        
-        # Create test config
-        cat > chezmoi.toml << EOF
+    # Create test config
+    cat > chezmoi.toml << EOF
 [data]
-    profile = "$profile"
+    profile = "power-user"
     
     [data.user]
         name = "Test User"
@@ -161,12 +158,18 @@ test_chezmoi_templates() {
         modern_cli = true
         developer_tools = true
         advanced_git = true
+        powerline_prompt = true
+        github_integration = true
+        auto_updates = true
+        modern_cli = true
+        developer_tools = true
+        advanced_git = true
         powerline_prompt = false
         github_integration = true
     
     [data.tools]
-        essential = ["git", "tmux"]
-        optional = []
+        essential = ["git", "tmux", "fzf", "ripgrep", "bat", "zoxide", "exa", "entr", "gh", "delta", "fd"]
+        optional = ["lazygit", "gitui", "bottom", "dust"]
     
     [data.paths]
         workspace = "~/workspace"
@@ -178,14 +181,13 @@ test_chezmoi_templates() {
         gui = "code"
 EOF
         
-        # Test initialization (dry run)
-        if chezmoi init --config ./chezmoi.toml --dry-run "$REPO_ROOT" >/dev/null 2>&1; then
-            echo -e "${GREEN}  ✅ $profile profile templates valid${NC}"
-        else
-            echo -e "${RED}  ❌ $profile profile template errors${NC}"
-            return 1
-        fi
-    done
+    # Test initialization (dry run)
+    if chezmoi init --config ./chezmoi.toml --dry-run "$REPO_ROOT" >/dev/null 2>&1; then
+        echo -e "${GREEN}  ✅ Templates valid${NC}"
+    else
+        echo -e "${RED}  ❌ Template errors${NC}"
+        return 1
+    fi
     
     # Cleanup
     cd "$REPO_ROOT"
@@ -203,7 +205,6 @@ test_documentation() {
     
     local expected_docs=(
         "docs/GETTING-STARTED.md"
-        "docs/PROFILES.md"
         "docs/AI-ASSISTANT-GUIDE.md"
     )
     

@@ -5,7 +5,6 @@ This guide explains how to customize your dotfiles setup to match your preferenc
 ## 🎯 Overview
 
 The dotfiles system is built with modularity in mind. You can customize:
-- Configuration profiles (minimal/developer/power-user)
 - Individual tool configurations
 - Platform-specific settings
 - Personal aliases and functions
@@ -58,7 +57,6 @@ Re-run the configuration:
 ```bash
 chezmoi init --apply
 ```
-Then select a different profile when prompted.
 
 ### Platform-Specific Settings
 Customize platform-specific configurations in:

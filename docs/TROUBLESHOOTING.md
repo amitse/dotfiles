@@ -172,8 +172,8 @@ chezmoi status
    - Windows PowerShell: `.\scripts\health-check.ps1`
    - Linux/macOS/Git Bash: `bash scripts/health-check.sh`
 2. Review your platform-specific configuration in `templates/partials/platforms/`
-3. Ensure all required tools are installed for your chosen profile
-4. Try switching to a minimal profile to isolate issues
+3. Ensure all required tools are installed
+4. Try temporarily disabling specific tools in your configuration to isolate issues
 
 ## 📞 Reporting Issues
 

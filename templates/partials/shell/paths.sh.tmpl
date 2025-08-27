@@ -282,17 +282,12 @@ add_to_path "{{ .paths.custom_bin }}"
 add_to_path "{{ . }}"
 {{- end }}
 
-# Profile-specific paths
-{{- if eq .profile "developer" }}
-# Developer profile specific paths
+# Power user specific paths
 add_to_path "$HOME/.local/share/nvim/bin"
 add_to_path "$HOME/development/tools/bin"
-{{- else if eq .profile "power-user" }}
-# Power user profile specific paths
 add_to_path "$HOME/.local/share/chezmoi/bin"
 add_to_path "$HOME/scripts"
 add_to_path "$HOME/tools/bin"
-{{- end }}
 
 # Rebuild PATH from our managed parts
 rebuild_path

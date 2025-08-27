@@ -1,6 +1,6 @@
 # Dotfiles
 
-Personal dotfiles managed with [chezmoi](https://chezmoi.io) - modular, profile-based development environment setup.
+Personal dotfiles managed with [chezmoi](https://chezmoi.io) - a complete power user development environment setup.
 
 ## 🚀 One-Command Installation
 
@@ -19,23 +19,12 @@ irm https://raw.githubusercontent.com/amitse/dotfiles/main/scripts/install/windo
 That's it! The installer will:
 
 1. Install chezmoi
-2. Let you choose a profile (minimal/developer/power-user)  
-3. Configure everything automatically
-
-## 🎯 Choose Your Profile
-
-| Profile | Tools | Perfect For |
-|---------|-------|-------------|
-| **Minimal** | git, tmux | Servers, learning |
-| **Developer** | + fzf, ripgrep, bat, zoxide, gh | Daily development |
-| **Power User** | + exa, entr, delta, lazygit, advanced features | Maximum productivity |
-
-**👉 Most users should choose Developer profile.**
+2. Configure everything automatically with full power user features
+3. Set up all modern CLI tools and advanced configurations
 
 ## 📚 Documentation
 
 - **[📖 Getting Started](docs/GETTING-STARTED.md)** - Complete setup guide
-- **[🎯 Profile Guide](docs/PROFILES.md)** - Detailed profile comparison  
 - **[🔧 Customization](docs/CUSTOMIZATION.md)** - How to customize your setup
 - **[🆘 Troubleshooting](docs/TROUBLESHOOTING.md)** - Fix common issues
 - **[📋 Implementation Plan](PLAN.md)** - Technical roadmap
@@ -67,26 +56,20 @@ chezmoi status
 
 ## 💡 What You Get
 
-### All Profiles:
+### Complete Development Environment:
 
 - ✅ **Git** with smart aliases and cross-platform settings
 - ✅ **tmux** with sensible defaults and clipboard integration
-- ✅ **Cross-platform support** (Windows/Linux/macOS)
-
-### Developer Profile Adds:
-
 - ✅ **fzf** - Fuzzy finder (Ctrl+R, Ctrl+T)
 - ✅ **ripgrep** - Ultra-fast text search
 - ✅ **bat** - Enhanced file viewer
 - ✅ **zoxide** - Smart directory jumping
 - ✅ **GitHub CLI** - Terminal repo management
-
-### Power User Profile Adds:
-
 - ✅ **exa** - Modern directory listing
 - ✅ **delta** - Beautiful git diffs
 - ✅ **lazygit** - Visual git interface
-- ✅ **Advanced shell features**
+- ✅ **Advanced shell features** with modern CLI tools
+- ✅ **Cross-platform support** (Windows/Linux/macOS)
 
 ## ⚡ Quick Examples
 
@@ -97,11 +80,13 @@ Ctrl+T                    # Fuzzy file finder
 bat README.md             # Syntax-highlighted viewing
 rg "function"             # Ultra-fast search
 z documents               # Smart directory jumping
+exa -la                   # Modern ls with icons
 
 # Git shortcuts:
 git st                    # Status
-git lg                    # Beautiful log
+git lg                    # Beautiful log with delta
 git cam "message"         # Commit all
+lazygit                   # Visual git interface
 
 # tmux:
 Ctrl+a |                  # Split vertically
